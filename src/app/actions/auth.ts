@@ -31,12 +31,18 @@ export async function signUp(email: string, password: string) {
 export async function signOut() {
   // Best-effort: revoke the refresh token server-side too, not just locally.
   const store = await cookies();
-  const access_token = store.get(ACCESS_COOKIE)?.value;
+  let access_token = store.get(ACCESS_COOKIE)?.value;
   const refresh_token = store.get(REFRESH_COOKIE)?.value;
-  if (access_token && refresh_token) {
+  if (refresh_token) {
     const client = supabaseServer();
-    await client.auth.setSession({ access_token, refresh_token });
-    await client.auth.signOut();
+    if (!access_token) {
+      const { data } = await client.auth.refreshSession({ refresh_token });
+      access_token = data.session?.access_token;
+    }
+    if (access_token) {
+      await client.auth.setSession({ access_token, refresh_token });
+      await client.auth.signOut();
+    }
   }
   await clearSessionCookies();
 }
