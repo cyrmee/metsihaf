@@ -1,0 +1,338 @@
+@import "tailwindcss" source(none);
+@source "../";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system: "Ink & Rubric" — drawn from Ethiopian illuminated
+ * manuscripts, where scribes wrote body text in black ink and chapter
+ * headings in a colored rubric ink. The app keeps that language:
+ * sharp-cornered "manuscript page" surfaces everywhere (--radius stays 0)
+ * on a plain white page, with the one floating pill nav standing apart as
+ * a rounded object above it. The active nav item — and every accent in the
+ * app — picks up the reader's chosen rubric color (Settings → Theme color).
+ */
+
+@theme inline {
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-highlight-yellow: var(--highlight-yellow);
+  --color-highlight-red: var(--highlight-red);
+  --color-highlight-orange: var(--highlight-orange);
+  --color-highlight-brown: var(--highlight-brown);
+  --color-highlight-green: var(--highlight-green);
+  --color-highlight-teal: var(--highlight-teal);
+  --color-highlight-blue: var(--highlight-blue);
+  --color-highlight-purple: var(--highlight-purple);
+  --color-highlight-pink: var(--highlight-pink);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif Ethiopic", ui-serif, Georgia, serif;
+  --font-ethiopic: "Noto Serif Ethiopic", "Source Serif 4", serif;
+  --font-display: "Cormorant", "Source Serif 4", Georgia, serif;
+}
+
+:root {
+  --radius: 0px;
+  /* Floating pill nav footprint on mobile (1rem offset + ~3rem pill) plus a clear gap above it. */
+  --nav-pill-clearance: 5.5rem;
+  --top-bar-h: 48px;
+  /* Page (light) — a plain white manuscript page, no warm cast */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.17 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0 0);
+  /* Rubric — default red; swapped by the theme-color overrides below */
+  --primary: oklch(0.47 0.17 29);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.17 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.46 0 0);
+  --accent: oklch(0.94 0 0);
+  --accent-foreground: oklch(0.2 0 0);
+  --destructive: oklch(0.5 0.17 350);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.82 0 0);
+  --ring: oklch(0.47 0.17 29);
+  /*
+   * Verse highlight colors — applied as font color, not a background tint.
+   * Kept visibly more saturated than any theme-color swatch below (all of
+   * which stay under ~0.17 chroma) and off their hues, so a highlight never
+   * reads as "the app accent" no matter which theme color is active.
+   */
+  --highlight-yellow: oklch(0.58 0.19 92);
+  --highlight-red: oklch(0.5 0.22 20);
+  --highlight-orange: oklch(0.56 0.2 48);
+  --highlight-brown: oklch(0.42 0.13 55);
+  --highlight-green: oklch(0.48 0.15 155);
+  --highlight-teal: oklch(0.5 0.16 205);
+  --highlight-blue: oklch(0.5 0.16 225);
+  --highlight-purple: oklch(0.5 0.18 315);
+  --highlight-pink: oklch(0.55 0.2 350);
+  --chart-1: oklch(0.47 0.17 29);
+  --chart-2: oklch(0.61 0.17 150);
+  --chart-3: oklch(0.83 0.15 90);
+  --chart-4: oklch(0.55 0.15 250);
+  --chart-5: oklch(0.7 0.13 80);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.17 0 0);
+  --sidebar-primary: oklch(0.47 0.17 29);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0.17 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.47 0.17 29);
+}
+
+/*
+ * Theme color — the reader's chosen rubric ink (Settings → Theme color).
+ * Swaps the primary/ring/sidebar accent only; page neutrals stay fixed.
+ */
+:root[data-accent="orange"] {
+  --primary: oklch(0.58 0.16 55);
+  --ring: oklch(0.58 0.16 55);
+  --sidebar-primary: oklch(0.58 0.16 55);
+  --sidebar-ring: oklch(0.58 0.16 55);
+}
+:root[data-accent="yellow"] {
+  --primary: oklch(0.62 0.13 85);
+  --ring: oklch(0.62 0.13 85);
+  --sidebar-primary: oklch(0.62 0.13 85);
+  --sidebar-ring: oklch(0.62 0.13 85);
+}
+:root[data-accent="green"] {
+  --primary: oklch(0.45 0.09 145);
+  --ring: oklch(0.45 0.09 145);
+  --sidebar-primary: oklch(0.45 0.09 145);
+  --sidebar-ring: oklch(0.45 0.09 145);
+}
+:root[data-accent="teal"] {
+  --primary: oklch(0.5 0.09 195);
+  --ring: oklch(0.5 0.09 195);
+  --sidebar-primary: oklch(0.5 0.09 195);
+  --sidebar-ring: oklch(0.5 0.09 195);
+}
+:root[data-accent="blue"] {
+  --primary: oklch(0.48 0.13 245);
+  --ring: oklch(0.48 0.13 245);
+  --sidebar-primary: oklch(0.48 0.13 245);
+  --sidebar-ring: oklch(0.48 0.13 245);
+}
+:root[data-accent="purple"] {
+  --primary: oklch(0.5 0.12 305);
+  --ring: oklch(0.5 0.12 305);
+  --sidebar-primary: oklch(0.5 0.12 305);
+  --sidebar-ring: oklch(0.5 0.12 305);
+}
+:root[data-accent="pink"] {
+  --primary: oklch(0.55 0.16 340);
+  --ring: oklch(0.55 0.16 340);
+  --sidebar-primary: oklch(0.55 0.16 340);
+  --sidebar-ring: oklch(0.55 0.16 340);
+}
+:root[data-accent="brown"] {
+  --primary: oklch(0.42 0.07 50);
+  --ring: oklch(0.42 0.07 50);
+  --sidebar-primary: oklch(0.42 0.07 50);
+  --sidebar-ring: oklch(0.42 0.07 50);
+}
+
+.dark {
+  /* Manuscript Night — ink-navy, not neutral gray */
+  --background: oklch(0.17 0.02 260);
+  --foreground: oklch(0.95 0.01 75);
+  --card: oklch(0.225 0.02 260);
+  --card-foreground: oklch(0.95 0.01 75);
+  --popover: oklch(0.225 0.02 260);
+  --popover-foreground: oklch(0.95 0.01 75);
+  --primary: oklch(0.64 0.18 29);
+  --primary-foreground: oklch(0.15 0.01 40);
+  --secondary: oklch(0.3 0.02 260);
+  --secondary-foreground: oklch(0.95 0.01 75);
+  --muted: oklch(0.3 0.02 260);
+  --muted-foreground: oklch(0.68 0.02 70);
+  --accent: oklch(0.32 0.04 80);
+  --accent-foreground: oklch(0.92 0.02 80);
+  --destructive: oklch(0.62 0.17 350);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.33 0.02 260);
+  --input: oklch(0.38 0.02 260);
+  --ring: oklch(0.64 0.18 29);
+  --highlight-yellow: oklch(0.82 0.19 92);
+  --highlight-red: oklch(0.7 0.22 20);
+  --highlight-orange: oklch(0.74 0.2 48);
+  --highlight-brown: oklch(0.6 0.13 55);
+  --highlight-green: oklch(0.74 0.16 155);
+  --highlight-teal: oklch(0.72 0.16 205);
+  --highlight-blue: oklch(0.72 0.17 225);
+  --highlight-purple: oklch(0.72 0.18 315);
+  --highlight-pink: oklch(0.76 0.2 350);
+  --chart-1: oklch(0.64 0.18 29);
+  --chart-2: oklch(0.65 0.16 150);
+  --chart-3: oklch(0.83 0.15 90);
+  --chart-4: oklch(0.62 0.13 250);
+  --chart-5: oklch(0.75 0.13 80);
+  --sidebar: oklch(0.225 0.02 260);
+  --sidebar-foreground: oklch(0.95 0.01 75);
+  --sidebar-primary: oklch(0.64 0.18 29);
+  --sidebar-primary-foreground: oklch(0.15 0.01 40);
+  --sidebar-accent: oklch(0.3 0.02 260);
+  --sidebar-accent-foreground: oklch(0.95 0.01 75);
+  --sidebar-border: oklch(0.33 0.02 260);
+  --sidebar-ring: oklch(0.64 0.18 29);
+}
+
+.dark[data-accent="orange"] {
+  --primary: oklch(0.72 0.15 55);
+  --ring: oklch(0.72 0.15 55);
+  --sidebar-primary: oklch(0.72 0.15 55);
+  --sidebar-ring: oklch(0.72 0.15 55);
+}
+.dark[data-accent="yellow"] {
+  --primary: oklch(0.78 0.12 85);
+  --ring: oklch(0.78 0.12 85);
+  --sidebar-primary: oklch(0.78 0.12 85);
+  --sidebar-ring: oklch(0.78 0.12 85);
+}
+.dark[data-accent="green"] {
+  --primary: oklch(0.68 0.1 145);
+  --ring: oklch(0.68 0.1 145);
+  --sidebar-primary: oklch(0.68 0.1 145);
+  --sidebar-ring: oklch(0.68 0.1 145);
+}
+.dark[data-accent="teal"] {
+  --primary: oklch(0.68 0.09 195);
+  --ring: oklch(0.68 0.09 195);
+  --sidebar-primary: oklch(0.68 0.09 195);
+  --sidebar-ring: oklch(0.68 0.09 195);
+}
+.dark[data-accent="blue"] {
+  --primary: oklch(0.68 0.13 245);
+  --ring: oklch(0.68 0.13 245);
+  --sidebar-primary: oklch(0.68 0.13 245);
+  --sidebar-ring: oklch(0.68 0.13 245);
+}
+.dark[data-accent="purple"] {
+  --primary: oklch(0.68 0.12 305);
+  --ring: oklch(0.68 0.12 305);
+  --sidebar-primary: oklch(0.68 0.12 305);
+  --sidebar-ring: oklch(0.68 0.12 305);
+}
+.dark[data-accent="pink"] {
+  --primary: oklch(0.72 0.14 340);
+  --ring: oklch(0.72 0.14 340);
+  --sidebar-primary: oklch(0.72 0.14 340);
+  --sidebar-ring: oklch(0.72 0.14 340);
+}
+.dark[data-accent="brown"] {
+  --primary: oklch(0.58 0.07 50);
+  --ring: oklch(0.58 0.07 50);
+  --sidebar-primary: oklch(0.58 0.07 50);
+  --sidebar-ring: oklch(0.58 0.07 50);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Scripture reading text */
+@utility scripture-text {
+  font-family: var(--font-serif);
+  line-height: 1.85;
+  letter-spacing: 0.002em;
+}
+
+@utility scripture-text-am {
+  font-family: var(--font-ethiopic);
+  line-height: 2;
+}
+
+/* Large display headings — set with restraint, manuscript-title feel */
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+/* Carbon-style focus ring */
+@utility focus-carbon {
+  &:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: -2px;
+  }
+}
+
+/* Momentary highlight for a verse just navigated to, e.g. from the picker or a shared link. */
+@keyframes verse-flash {
+  from {
+    background-color: color-mix(in oklab, var(--color-primary) 35%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@utility verse-flash {
+  animation: verse-flash 1.6s ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
