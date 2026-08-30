@@ -65,6 +65,7 @@ const KEYS = {
   lineSpacing: "bible.lineSpacing",
   letterSpacing: "bible.letterSpacing",
   showVerseSelector: "bible.showVerseSelector",
+  recentSearches: "bible.recentSearches",
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -248,4 +249,41 @@ export function getLetterSpacing(): LetterSpacing {
 
 export function setLetterSpacing(spacing: LetterSpacing) {
   write(KEYS.letterSpacing, spacing);
+}
+
+// ---- Recent searches ----
+
+export interface RecentSearch {
+  query: string;
+  translation: string;
+  at: number;
+}
+
+const MAX_RECENT_SEARCHES = 8;
+
+export function getRecentSearches(): RecentSearch[] {
+  return read<RecentSearch[]>(KEYS.recentSearches, []);
+}
+
+export function addRecentSearch(query: string, translation: string) {
+  const trimmed = query.trim();
+  if (!trimmed) return;
+  const rest = getRecentSearches().filter(
+    (r) => !(r.query === trimmed && r.translation === translation),
+  );
+  write(
+    KEYS.recentSearches,
+    [{ query: trimmed, translation, at: Date.now() }, ...rest].slice(0, MAX_RECENT_SEARCHES),
+  );
+}
+
+export function removeRecentSearch(query: string, translation: string) {
+  write(
+    KEYS.recentSearches,
+    getRecentSearches().filter((r) => !(r.query === query && r.translation === translation)),
+  );
+}
+
+export function clearRecentSearches() {
+  write(KEYS.recentSearches, []);
 }

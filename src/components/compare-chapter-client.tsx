@@ -10,7 +10,9 @@ import { BOOK_BY_ID, bookName, neighborChapter } from "@/data/books";
 import type { TranslationId } from "@/lib/bible";
 import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID } from "@/lib/bible";
 import { useChapter } from "@/lib/use-chapter";
+import { useChapterNavigation } from "@/lib/use-chapter-nav";
 import { getFontSize } from "@/lib/local-store";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function CompareChapterClient({
   book: bookId,
@@ -28,15 +30,29 @@ export function CompareChapterClient({
   const [pickerOpen, setPickerOpen] = useState(false);
   const leftTextRef = useRef<ChapterTextHandle>(null);
   const rightTextRef = useRef<ChapterTextHandle>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setFontSizeState(Math.max(15, getFontSize() - 1));
   }, []);
 
+  // Two narrower columns need a smaller size to keep from wrapping every word.
+  const effectiveFontSize = isMobile ? Math.max(13, fontSize - 3) : fontSize;
+
   const leftQuery = useChapter(left, bookId, chapter);
   const rightQuery = useChapter(right, bookId, chapter);
 
-  if (!book || !Number.isInteger(chapter) || chapter < 1 || chapter > book.chapters) {
+  const isValid = !!book && Number.isInteger(chapter) && chapter >= 1 && chapter <= book.chapters;
+  const prev = isValid ? neighborChapter(bookId, chapter, -1) : null;
+  const next = isValid ? neighborChapter(bookId, chapter, 1) : null;
+
+  useChapterNavigation({
+    prevHref: prev ? `/compare/${prev.book}/${prev.chapter}` : null,
+    nextHref: next ? `/compare/${next.book}/${next.chapter}` : null,
+    disabled: !isValid || pickerOpen,
+  });
+
+  if (!isValid) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <h1 className="text-xl font-semibold text-foreground">Chapter not found</h1>
@@ -46,9 +62,6 @@ export function CompareChapterClient({
       </div>
     );
   }
-
-  const prev = neighborChapter(bookId, chapter, -1);
-  const next = neighborChapter(bookId, chapter, 1);
 
   const jumpToVerse = (verse: number) => {
     leftTextRef.current?.flashVerse(verse);
@@ -92,20 +105,20 @@ export function CompareChapterClient({
         onJumpToVerse={jumpToVerse}
       />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <ComparePane
           ref={leftTextRef}
           translation={left}
           onChange={setLeft}
           query={leftQuery}
-          fontSize={fontSize}
+          fontSize={effectiveFontSize}
         />
         <ComparePane
           ref={rightTextRef}
           translation={right}
           onChange={setRight}
           query={rightQuery}
-          fontSize={fontSize}
+          fontSize={effectiveFontSize}
         />
       </div>
 

@@ -1,34 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon, X } from "lucide-react";
 import { formatRef } from "@/data/books";
 import { API_BASE } from "@/lib/api-base";
+import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID, type TranslationId } from "@/lib/bible";
+import {
+  addRecentSearch,
+  getPreferredTranslation,
+  getRecentSearches,
+  removeRecentSearch,
+  type RecentSearch,
+} from "@/lib/local-store";
+import { TranslationSwitcher } from "@/components/translation-switcher";
 
-async function searchAmharic(query: string): Promise<{ ref: string; text: string }[]> {
-  const params = new URLSearchParams({ translation: "AMH", query });
+interface Hit {
+  ref: string;
+  text: string;
+}
+
+const DEBOUNCE_MS = 400;
+
+async function searchTranslation(translation: TranslationId, query: string): Promise<Hit[]> {
+  const params = new URLSearchParams({ translation, query });
   const res = await fetch(`${API_BASE}/api/search?${params.toString()}`);
   if (!res.ok) return [];
-  const body = (await res.json()) as { results?: { ref: string; text: string }[] };
+  const body = (await res.json()) as { results?: Hit[] };
   return body.results ?? [];
 }
 
-export function SearchClient() {
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<{ ref: string; text: string }[] | null>(null);
-  const [busy, setBusy] = useState(false);
+/** Previous/next verse in the same chapter, for a one-line reading of context around a hit. */
+async function getVerseContext(refs: string[]): Promise<Record<string, string | null>> {
+  if (refs.length === 0) return {};
+  const params = new URLSearchParams({ refs: refs.join(",") });
+  const res = await fetch(`${API_BASE}/api/verse-text?${params.toString()}`);
+  if (!res.ok) return {};
+  const body = (await res.json()) as { texts?: Record<string, string | null> };
+  return body.texts ?? {};
+}
 
-  const run = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (q.length < 2) return;
+function neighborRefs(ref: string): { prevRef: string | null; nextRef: string } {
+  const [book, chapter, verse] = ref.split(".");
+  const v = Number(verse);
+  return {
+    prevRef: v > 1 ? `${book}.${chapter}.${v - 1}` : null,
+    nextRef: `${book}.${chapter}.${v + 1}`,
+  };
+}
+
+export function SearchClient() {
+  const [translation, setTranslation] = useState<TranslationId>("AMH");
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<Hit[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [context, setContext] = useState<Record<string, string | null>>({});
+  const [recent, setRecent] = useState<RecentSearch[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    setTranslation(getPreferredTranslation() as TranslationId);
+    setRecent(getRecentSearches());
+  }, []);
+
+  const language = TRANSLATION_BY_ID[translation].language;
+  const languageFontClass = LANGUAGE_FONT_CLASS[language] ?? "";
+
+  const runSearch = async (q: string, t: TranslationId) => {
+    const trimmed = q.trim();
+    if (trimmed.length < 2) {
+      setHits(null);
+      setContext({});
+      return;
+    }
+    const requestId = ++requestIdRef.current;
     setBusy(true);
     try {
-      setHits(await searchAmharic(q));
+      const results = await searchTranslation(t, trimmed);
+      if (requestId !== requestIdRef.current) return;
+      setHits(results);
+      addRecentSearch(trimmed, t);
+      setRecent(getRecentSearches());
+
+      // Context previews only exist for the local Amharic text.
+      if (t === "AMH" && results.length > 0) {
+        const neighborList = results.map((h) => neighborRefs(h.ref));
+        const wanted = Array.from(
+          new Set(
+            neighborList.flatMap((n) => [n.prevRef, n.nextRef].filter((r): r is string => !!r)),
+          ),
+        );
+        const texts = await getVerseContext(wanted);
+        if (requestId !== requestIdRef.current) return;
+        setContext(texts);
+      } else {
+        setContext({});
+      }
     } finally {
-      setBusy(false);
+      if (requestId === requestIdRef.current) setBusy(false);
     }
+  };
+
+  // Live search as you type, debounced; submitting the form runs it immediately.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.trim().length < 2) {
+      setHits(null);
+      setContext({});
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      void runSearch(query, translation);
+    }, DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, translation]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    void runSearch(query, translation);
+  };
+
+  const runRecent = (r: RecentSearch) => {
+    setTranslation(r.translation as TranslationId);
+    setQuery(r.query);
+    void runSearch(r.query, r.translation as TranslationId);
   };
 
   return (
@@ -38,17 +137,21 @@ export function SearchClient() {
           Search
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Full-text search across the Amharic 1954 Bible.
+          Full-text search across {TRANSLATION_BY_ID[translation].name}.
         </p>
       </div>
 
-      <form onSubmit={run} className="mt-5 flex gap-0">
+      <div className="mt-4 flex justify-center">
+        <TranslationSwitcher value={translation} onChange={setTranslation} size="sm" />
+      </div>
+
+      <form onSubmit={submit} className="mt-4 flex gap-0">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ኢየሱስ, ፍቅር, ጸጋ…"
+          placeholder={language === "am" ? "ኢየሱስ, ፍቅር, ጸጋ…" : "Jesus, love, grace…"}
           aria-label="Search the Bible"
-          className="focus-carbon font-ethiopic w-full border border-input bg-background px-3 py-2.5 text-base text-foreground"
+          className={`focus-carbon w-full border border-input bg-background px-3 py-2.5 text-base text-foreground ${languageFontClass}`}
         />
         <button
           type="submit"
@@ -57,6 +160,41 @@ export function SearchClient() {
           <SearchIcon className="h-4 w-4" /> Search
         </button>
       </form>
+
+      {!hits && recent.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-2 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            Recent searches
+          </p>
+          <ul className="flex flex-wrap justify-center gap-1.5">
+            {recent.map((r) => (
+              <li key={`${r.translation}:${r.query}`} className="flex items-stretch">
+                <button
+                  type="button"
+                  onClick={() => runRecent(r)}
+                  className={`focus-carbon flex items-center gap-1.5 border border-border bg-card py-1.5 pr-1.5 pl-3 text-sm text-foreground hover:bg-accent ${LANGUAGE_FONT_CLASS[TRANSLATION_BY_ID[r.translation as TranslationId]?.language ?? "en"] ?? ""}`}
+                >
+                  {r.query}
+                  <span className="text-xs text-muted-foreground">
+                    {TRANSLATION_BY_ID[r.translation as TranslationId]?.label ?? r.translation}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeRecentSearch(r.query, r.translation);
+                    setRecent(getRecentSearches());
+                  }}
+                  aria-label={`Remove "${r.query}" from recent searches`}
+                  className="focus-carbon flex items-center border border-l-0 border-border bg-card px-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {busy && <p className="mt-8 text-center text-sm text-muted-foreground">Searching…</p>}
 
@@ -68,6 +206,9 @@ export function SearchClient() {
           <ul className="flex flex-col gap-1.5">
             {hits.map((hit) => {
               const parts = hit.ref.split(".");
+              const { prevRef, nextRef } = neighborRefs(hit.ref);
+              const before = prevRef ? context[prevRef] : null;
+              const after = context[nextRef];
               return (
                 <li key={hit.ref}>
                   <Link
@@ -75,11 +216,27 @@ export function SearchClient() {
                     className="focus-carbon block bg-card px-3 py-3 hover:bg-accent"
                   >
                     <span className="text-xs font-semibold text-primary">
-                      {formatRef(hit.ref, "am")}
+                      {formatRef(hit.ref, language)}
                     </span>
-                    <p className="font-ethiopic mt-1 text-[0.95rem] leading-relaxed text-foreground">
+                    {before && (
+                      <p
+                        className={`mt-1 truncate text-xs text-muted-foreground/70 ${languageFontClass}`}
+                      >
+                        {before}
+                      </p>
+                    )}
+                    <p
+                      className={`mt-1 text-[0.95rem] leading-relaxed text-foreground ${languageFontClass}`}
+                    >
                       {hit.text}
                     </p>
+                    {after && (
+                      <p
+                        className={`mt-1 truncate text-xs text-muted-foreground/70 ${languageFontClass}`}
+                      >
+                        {after}
+                      </p>
+                    )}
                   </Link>
                 </li>
               );

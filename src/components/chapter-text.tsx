@@ -37,19 +37,6 @@ const HIGHLIGHT_CLASSES: Record<HighlightColor, string> = {
   pink: "bg-highlight-pink/20 text-foreground dark:bg-transparent dark:text-highlight-pink",
 };
 
-/** Just the dark-mode colored-text half of the above, for when the selection background takes over the light-mode wash. */
-const HIGHLIGHT_DARK_TEXT_CLASSES: Record<HighlightColor, string> = {
-  yellow: "dark:text-highlight-yellow",
-  red: "dark:text-highlight-red",
-  orange: "dark:text-highlight-orange",
-  brown: "dark:text-highlight-brown",
-  green: "dark:text-highlight-green",
-  teal: "dark:text-highlight-teal",
-  blue: "dark:text-highlight-blue",
-  purple: "dark:text-highlight-purple",
-  pink: "dark:text-highlight-pink",
-};
-
 const HIGHLIGHT_SWATCHES: { color: HighlightColor; className: string; label: string }[] = [
   { color: "yellow", className: "bg-highlight-yellow", label: "Yellow" },
   { color: "red", className: "bg-highlight-red", label: "Red" },
@@ -91,6 +78,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
   ref,
 ) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [openRefsVerse, setOpenRefsVerse] = useState<number | null>(null);
   const storeVersion = useStoreVersion();
   void storeVersion; // re-render on store changes
   const containerRef = useRef<HTMLDivElement>(null);
@@ -145,20 +133,12 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
     const highlight = interactive
       ? getHighlight(`${data.book}.${data.chapter}.${verse}`)
       : undefined;
-    // Selection's own background wins while active; the highlight's colored
-    // text still shows through so you can tell it's highlighted underneath.
-    if (isSelected) {
-      return [
-        interactive ? "cursor-pointer" : "",
-        "bg-accent/70 shadow-[inset_2px_0_0_0_var(--color-primary)]",
-        highlight ? HIGHLIGHT_DARK_TEXT_CLASSES[highlight.color] : "text-foreground",
-      ]
-        .filter(Boolean)
-        .join(" ");
-    }
     return [
       interactive ? "cursor-pointer" : "",
       highlight ? HIGHLIGHT_CLASSES[highlight.color] : "text-foreground",
+      isSelected
+        ? "underline decoration-dotted decoration-2 decoration-primary underline-offset-4"
+        : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -175,10 +155,18 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
   const marks = (verse: number, ref: string) => (
     <>
       {interactive && data.verses.find((v) => v.verse === verse)!.refs.length > 0 && (
-        <Link2
-          className="ml-1.5 inline h-3.5 w-3.5 align-baseline text-muted-foreground"
-          aria-label="Has cross-references"
-        />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenRefsVerse(verse);
+          }}
+          aria-label="Open cross-references"
+          title="Cross-references"
+          className="focus-carbon ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+        </button>
       )}
       {interactive && isBookmarked(ref) && (
         <Bookmark className="ml-1 inline h-3.5 w-3.5 fill-primary align-baseline text-primary" />
@@ -253,6 +241,17 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           verses={data.verses}
           selected={selected}
           onClear={() => setSelected(new Set())}
+        />
+      )}
+
+      {interactive && book && openRefsVerse !== null && (
+        <CrossRefsModal
+          sourceLabel={`${bookName(book, translation.language)} ${data.chapter}:${
+            data.verses.find((v) => v.verse === openRefsVerse)?.label ?? openRefsVerse
+          }`}
+          refs={data.verses.find((v) => v.verse === openRefsVerse)?.refs ?? []}
+          open={openRefsVerse !== null}
+          onClose={() => setOpenRefsVerse(null)}
         />
       )}
     </>

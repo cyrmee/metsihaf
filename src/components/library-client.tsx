@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bookmark, NotebookPen, Highlighter, Trash2 } from "lucide-react";
+import { Bookmark, Check, NotebookPen, Highlighter, Pencil, Trash2, X } from "lucide-react";
 import { formatRef } from "@/data/books";
 import {
   getBookmarks,
@@ -99,6 +99,7 @@ export function LibraryClient() {
               ref: n.ref,
               body: n.text,
               onRemove: () => setNote(n.ref, ""),
+              onSave: (text: string) => setNote(n.ref, text),
             }))}
           />
         )}
@@ -112,9 +113,14 @@ interface EntryItem {
   body?: string;
   badge?: string;
   onRemove: () => void;
+  /** Present only for notes: saves an edited body in place. */
+  onSave?: (text: string) => void;
 }
 
 function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
+  const [editingRef, setEditingRef] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+
   if (items.length === 0) {
     return (
       <div className="border border-border bg-card p-8 text-center text-sm text-muted-foreground">
@@ -122,13 +128,25 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
       </div>
     );
   }
+
+  const startEdit = (item: EntryItem) => {
+    setEditingRef(item.ref);
+    setDraft(item.body ?? "");
+  };
+
+  const saveEdit = (item: EntryItem) => {
+    item.onSave?.(draft);
+    setEditingRef(null);
+  };
+
   return (
     <ul className="flex flex-col gap-1.5">
       {items.map((item) => {
         const parts = item.ref.split(".");
+        const isEditing = editingRef === item.ref;
         return (
           <li key={item.ref} className="flex items-start justify-between gap-3 bg-card px-3 py-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <Link
                 href={`/read/${parts[0] ?? "GEN"}/${parts[1] ?? "1"}#v${parts[2]}`}
                 className="focus-carbon text-sm font-semibold text-primary hover:underline"
@@ -140,18 +158,58 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
                   {item.badge}
                 </span>
               )}
-              {item.body && (
-                <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{item.body}</p>
+              {isEditing ? (
+                <div className="mt-1.5 flex flex-col gap-1.5">
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    rows={2}
+                    autoFocus
+                    className="focus-carbon w-full border border-input bg-background p-2 text-sm text-foreground"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => saveEdit(item)}
+                      className="focus-carbon flex items-center gap-1 bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Check className="h-3 w-3" /> Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingRef(null)}
+                      className="focus-carbon flex items-center gap-1 border border-border px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+                    >
+                      <X className="h-3 w-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                item.body && (
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{item.body}</p>
+                )
               )}
             </div>
-            <button
-              type="button"
-              onClick={item.onRemove}
-              aria-label={`Remove ${formatRef(item.ref)}`}
-              className="focus-carbon shrink-0 text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              {item.onSave && !isEditing && (
+                <button
+                  type="button"
+                  onClick={() => startEdit(item)}
+                  aria-label={`Edit note on ${formatRef(item.ref)}`}
+                  className="focus-carbon text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={item.onRemove}
+                aria-label={`Remove ${formatRef(item.ref)}`}
+                className="focus-carbon text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </li>
         );
       })}

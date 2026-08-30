@@ -17,6 +17,7 @@ import { TranslationSwitcher } from "@/components/translation-switcher";
 import { BOOK_BY_ID, bookName, neighborChapter } from "@/data/books";
 import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID, type TranslationId } from "@/lib/bible";
 import { useChapter } from "@/lib/use-chapter";
+import { useChapterNavigation } from "@/lib/use-chapter-nav";
 import {
   getFontSize,
   getLetterSpacing,
@@ -93,7 +94,17 @@ export function ReadChapterClient({
 
   const { data, isLoading, error } = useChapter(translation, bookId, chapter);
 
-  if (!book || !Number.isInteger(chapter) || chapter < 1 || chapter > book.chapters) {
+  const isValid = !!book && Number.isInteger(chapter) && chapter >= 1 && chapter <= book.chapters;
+  const prev = isValid ? neighborChapter(bookId, chapter, -1) : null;
+  const next = isValid ? neighborChapter(bookId, chapter, 1) : null;
+
+  useChapterNavigation({
+    prevHref: prev ? `/read/${prev.book}/${prev.chapter}` : null,
+    nextHref: next ? `/read/${next.book}/${next.chapter}` : null,
+    disabled: !isValid || pickerOpen,
+  });
+
+  if (!isValid) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <h1 className="text-xl font-semibold text-foreground">Chapter not found</h1>
@@ -106,9 +117,6 @@ export function ReadChapterClient({
       </div>
     );
   }
-
-  const prev = neighborChapter(bookId, chapter, -1);
-  const next = neighborChapter(bookId, chapter, 1);
 
   const changeTranslation = (id: TranslationId) => {
     setTranslation(id);

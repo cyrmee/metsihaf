@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
+} from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { ListOrdered, Search, X } from "lucide-react";
 import { BOOKS, bookName, type BibleBook } from "@/data/books";
 import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID, type TranslationId } from "@/lib/bible";
 import { useChapter } from "@/lib/use-chapter";
-import { getShowVerseSelector } from "@/lib/local-store";
+import { getShowVerseSelector, setShowVerseSelector } from "@/lib/local-store";
 
 interface BookChapterModalProps {
   book: BibleBook;
@@ -41,6 +48,10 @@ export function BookChapterModal({
   const [verseSelectorEnabled, setVerseSelectorEnabled] = useState(false);
   const currentBookRef = useRef<HTMLButtonElement>(null);
   const currentChapterRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const booksColRef = useRef<HTMLDivElement>(null);
+  const chaptersColRef = useRef<HTMLDivElement>(null);
+  const versesColRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -51,6 +62,7 @@ export function BookChapterModal({
       requestAnimationFrame(() => {
         currentBookRef.current?.scrollIntoView({ block: "center" });
         currentChapterRef.current?.scrollIntoView({ block: "center" });
+        searchInputRef.current?.focus();
       });
     }
     // Only reset when the modal opens, not on every prop change while it's open.
@@ -114,25 +126,115 @@ export function BookChapterModal({
   const chapters = Array.from({ length: selectedBook.chapters }, (_, i) => i + 1);
   const verses = data ? Array.from({ length: data.verses.length }, (_, i) => i + 1) : [];
 
+  const toggleVerseSelector = () => {
+    const next = !verseSelectorEnabled;
+    setVerseSelectorEnabled(next);
+    setShowVerseSelector(next);
+  };
+
+  /** Focuses the button whose row is nearest above/below the current one, matching horizontal position — works for both single-column lists and multi-column grids. */
+  const focusRow = (container: HTMLElement, current: HTMLButtonElement, dir: 1 | -1) => {
+    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>("button"));
+    const rect = current.getBoundingClientRect();
+    const candidates = buttons.filter((b) => {
+      const r = b.getBoundingClientRect();
+      return dir > 0 ? r.top > rect.top + 1 : r.top < rect.top - 1;
+    });
+    if (candidates.length === 0) return;
+    const targetTop =
+      dir > 0
+        ? Math.min(...candidates.map((b) => b.getBoundingClientRect().top))
+        : Math.max(...candidates.map((b) => b.getBoundingClientRect().top));
+    const row = candidates.filter((b) => Math.abs(b.getBoundingClientRect().top - targetTop) < 2);
+    const centerX = rect.left + rect.width / 2;
+    row.sort(
+      (a, b) =>
+        Math.abs(a.getBoundingClientRect().left + a.getBoundingClientRect().width / 2 - centerX) -
+        Math.abs(b.getBoundingClientRect().left + b.getBoundingClientRect().width / 2 - centerX),
+    );
+    row[0]?.focus();
+  };
+
+  /** Focuses the column's active item (aria-current) if there is one, else its first button. */
+  const focusColumnEntry = (ref: RefObject<HTMLDivElement | null>) => {
+    const el = ref.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLButtonElement>('button[aria-current="true"]');
+    (active ?? el.querySelector<HTMLButtonElement>("button"))?.focus();
+  };
+
+  const onColumnKeyDown = (
+    e: ReactKeyboardEvent<HTMLDivElement>,
+    ref: RefObject<HTMLDivElement | null>,
+    onLeftEdge?: () => void,
+    onRightEdge?: () => void,
+  ) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName !== "BUTTON") return;
+    const container = ref.current;
+    if (!container) return;
+    const button = target as HTMLButtonElement;
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      focusRow(container, button, e.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>("button"));
+      const idx = buttons.indexOf(button);
+      if (e.key === "ArrowLeft") {
+        if (idx > 0) buttons[idx - 1]?.focus();
+        else onLeftEdge?.();
+      } else {
+        if (idx < buttons.length - 1) buttons[idx + 1]?.focus();
+        else onRightEdge?.();
+      }
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col bg-background shadow-[0_16px_48px_-16px_rgba(0,0,0,0.5)]">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="font-display text-xl font-semibold text-foreground">Go to</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="focus-carbon flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleVerseSelector}
+              aria-pressed={verseSelectorEnabled}
+              aria-label="Jump to a specific verse"
+              title="Jump to a specific verse"
+              className={`focus-carbon flex h-8 w-8 items-center justify-center border ${
+                verseSelectorEnabled
+                  ? "border-primary bg-accent text-primary"
+                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
+            >
+              <ListOrdered className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="focus-carbon flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="flex min-h-0 flex-1 gap-3 px-3 pb-3">
           {/* Books */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card">
+          <div
+            ref={booksColRef}
+            className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card"
+            onKeyDown={(e) =>
+              onColumnKeyDown(e, booksColRef, undefined, () => focusColumnEntry(chaptersColRef))
+            }
+          >
             <div className="sticky top-0 z-10 bg-card px-3 pt-3 pb-2">
               <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 Books
@@ -140,8 +242,15 @@ export function BookChapterModal({
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  ref={searchInputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      focusColumnEntry(booksColRef);
+                    }
+                  }}
                   placeholder="Find…"
                   aria-label="Find a book"
                   className="focus-carbon w-full border border-input bg-background py-2 pr-2 pl-8 text-sm text-foreground"
@@ -190,7 +299,18 @@ export function BookChapterModal({
           </div>
 
           {/* Chapters */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card">
+          <div
+            ref={chaptersColRef}
+            className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card"
+            onKeyDown={(e) =>
+              onColumnKeyDown(
+                e,
+                chaptersColRef,
+                () => focusColumnEntry(booksColRef),
+                verseSelectorEnabled ? () => focusColumnEntry(versesColRef) : undefined,
+              )
+            }
+          >
             <div className="sticky top-0 z-10 bg-card px-3 pt-3 pb-2">
               <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 Chapters
@@ -226,7 +346,13 @@ export function BookChapterModal({
 
           {/* Verses */}
           {verseSelectorEnabled && (
-            <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card">
+            <div
+              ref={versesColRef}
+              className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card"
+              onKeyDown={(e) =>
+                onColumnKeyDown(e, versesColRef, () => focusColumnEntry(chaptersColRef), undefined)
+              }
+            >
               <div className="sticky top-0 z-10 bg-card px-3 pt-3 pb-2">
                 <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                   Verses

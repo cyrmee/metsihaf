@@ -28,6 +28,32 @@ export async function signUp(email: string, password: string) {
   return { error: null, needsConfirmation: !data.session };
 }
 
+export async function requestPasswordReset(email: string, redirectTo: string) {
+  const { error } = await supabaseServer().auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+/** Completes a reset from the tokens Supabase put in the email link's URL fragment. */
+export async function completePasswordReset(
+  accessToken: string,
+  refreshToken: string,
+  password: string,
+) {
+  const client = supabaseServer();
+  const { data, error } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error || !data.session) {
+    return { error: error?.message ?? "That reset link is invalid or has expired." };
+  }
+  const { error: updateError } = await client.auth.updateUser({ password });
+  if (updateError) return { error: updateError.message };
+  await setSessionCookies(data.session);
+  return { error: null };
+}
+
 export async function signOut() {
   // Best-effort: revoke the refresh token server-side too, not just locally.
   const store = await cookies();

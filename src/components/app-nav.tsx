@@ -7,6 +7,7 @@ import { BookOpen, Columns2, Search, LibraryBig, Settings, Moon, Sun } from "luc
 
 import { cn } from "@/lib/utils";
 import { getAccentTheme, getDarkMode, setDarkMode, onStoreChange } from "@/lib/local-store";
+import { useSession } from "@/lib/use-session";
 
 const NAV_LINKS = [
   { href: "/read/GEN/1", label: "Read", icon: BookOpen, matchPrefix: "/read" },
@@ -25,6 +26,7 @@ const NAV_LINKS = [
 export function AppNav() {
   const pathname = usePathname();
   const [dark, setDark] = useState(false);
+  const { user } = useSession();
 
   useEffect(() => {
     const apply = () => {
@@ -54,21 +56,28 @@ export function AppNav() {
             ? pathname === link.href
             : pathname.startsWith(link.href);
         const Icon = link.icon;
+        const showAccountDot = link.href === "/settings" && !!user;
         return (
           <Link
             key={link.href}
             href={link.href}
-            aria-label={link.label}
+            aria-label={showAccountDot ? `${link.label} (signed in)` : link.label}
             aria-current={isActive ? "page" : undefined}
             title={link.label}
             className={cn(
-              "focus-carbon flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+              "focus-carbon relative flex h-11 w-11 items-center justify-center rounded-full transition-colors",
               isActive
                 ? "bg-accent text-primary"
                 : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
             )}
           >
             <Icon className="h-5 w-5" />
+            {showAccountDot && (
+              <span
+                aria-hidden="true"
+                className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary"
+              />
+            )}
           </Link>
         );
       })}

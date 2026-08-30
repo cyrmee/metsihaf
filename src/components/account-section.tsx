@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { LogIn, LogOut, Mail } from "lucide-react";
-import { signIn, signOut, signUp } from "@/app/actions/auth";
+import { Eye, EyeOff, LogIn, LogOut, Mail } from "lucide-react";
+import { requestPasswordReset, signIn, signOut, signUp } from "@/app/actions/auth";
 import { useSession } from "@/lib/use-session";
 
 /** Sign in/up form and account status, in Settings. Syncing itself is handled by AuthSyncProvider. */
@@ -10,6 +10,7 @@ export function AccountSection() {
   const { user, refresh } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [status, setStatus] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,6 +59,25 @@ export function AccountSection() {
     await refresh();
   };
 
+  const forgotPassword = async () => {
+    if (!email.trim()) {
+      setStatus({ kind: "error", text: "Enter your email above, then try again." });
+      return;
+    }
+    setStatus(null);
+    setBusy(true);
+    const result = await requestPasswordReset(
+      email.trim(),
+      `${window.location.origin}/reset-password`,
+    );
+    setBusy(false);
+    setStatus({
+      kind: result.error ? "error" : "info",
+      text:
+        result.error ?? "If that email has an account, we've sent a link to reset your password.",
+    });
+  };
+
   return (
     <div className="flex flex-col items-center gap-3">
       <p className="max-w-xs text-center text-xs text-muted-foreground">
@@ -73,15 +93,25 @@ export function AccountSection() {
           onChange={(e) => setEmail(e.target.value)}
           className="focus-carbon border border-border bg-card px-3 py-2 text-sm text-foreground"
         />
-        <input
-          type="password"
-          required
-          minLength={6}
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="focus-carbon border border-border bg-card px-3 py-2 text-sm text-foreground"
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={6}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="focus-carbon w-full border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="focus-carbon absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
+          >
+            {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+        </div>
         <button
           type="submit"
           disabled={busy}
@@ -91,9 +121,19 @@ export function AccountSection() {
           {mode === "signIn" ? "Sign in" : "Create account"}
         </button>
       </form>
+      {mode === "signIn" && (
+        <button
+          type="button"
+          onClick={forgotPassword}
+          disabled={busy}
+          className="focus-carbon text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+        >
+          Forgot password?
+        </button>
+      )}
       {status && (
         <p
-          className={`text-xs ${status.kind === "error" ? "text-destructive" : "text-muted-foreground"}`}
+          className={`max-w-xs text-center text-xs ${status.kind === "error" ? "text-destructive" : "text-muted-foreground"}`}
         >
           {status.text}
         </p>
@@ -102,6 +142,8 @@ export function AccountSection() {
         type="button"
         onClick={() => {
           setMode((m) => (m === "signIn" ? "signUp" : "signIn"));
+          setPassword("");
+          setShowPassword(false);
           setStatus(null);
         }}
         className="focus-carbon text-xs text-primary hover:underline"

@@ -1,16 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import "./globals.css";
 import { AppNav } from "@/components/app-nav";
 import { QueryProvider } from "@/components/query-provider";
 import { AuthSyncProvider } from "@/components/auth-sync-provider";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 export const metadata: Metadata = {
   title: "Metsihaf — Bible Reader",
   description:
     "Read the Bible in Amharic 1954, NIV, ESV, NLT, and NASB with cross-references, parallel view, search, and personal study tools.",
   authors: [{ name: "Metsihaf" }],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Metsihaf",
+  },
   openGraph: {
     title: "Metsihaf — Bible Reader",
     description:
@@ -20,6 +26,14 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fcfcfc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a1018" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -46,6 +60,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
+        <ServiceWorkerRegister />
         <QueryProvider>
           <AuthSyncProvider>
             <div className="flex min-h-screen flex-col pt-0 pb-28 md:pt-28 md:pb-0">
