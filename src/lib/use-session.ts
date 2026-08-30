@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase.client";
+import { createContext, useContext } from "react";
 
-/** The current Supabase Auth session, reactive to sign-in/out. Undefined while loading. */
-export function useSession(): Session | null | undefined {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
+export type SessionUser = { email: string | null };
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
-    return () => subscription.unsubscribe();
-  }, []);
+export type SessionContextValue = {
+  /** undefined while loading, null when signed out. */
+  user: SessionUser | null | undefined;
+  /** Re-checks the session (call after sign-in/up/out). */
+  refresh: () => Promise<void>;
+};
 
-  return session;
+export const SessionContext = createContext<SessionContextValue>({
+  user: undefined,
+  refresh: async () => {},
+});
+
+/** The current session, reactive to sign-in/out triggered anywhere under AuthProvider. */
+export function useSession() {
+  return useContext(SessionContext);
 }

@@ -10,8 +10,7 @@
  *     starts pushing every local write to the server in the background.
  *   - Call the returned cleanup function on sign-out to stop pushing.
  */
-import { supabase } from "@/lib/supabase.client";
-import { API_BASE } from "@/lib/api-base";
+import { authedApiFetch } from "@/app/actions/proxy";
 import {
   getAccentTheme,
   getBookmarks,
@@ -43,15 +42,8 @@ import {
   type VerseViewMode,
 } from "@/lib/local-store";
 
-async function authedFetch(path: string, init?: RequestInit) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) return null;
-  return fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: { ...init?.headers, Authorization: `Bearer ${session.access_token}` },
-  });
+async function authedFetch(path: string, init?: { method?: string; body?: string }) {
+  return authedApiFetch(path, init);
 }
 
 /** Pulls the server's copy of every table into localStorage, without dropping local-only items. */
@@ -65,25 +57,25 @@ async function pullRemoteIntoLocal() {
   ]);
 
   if (bookmarksRes?.ok) {
-    const remote = (await bookmarksRes.json()) as { ref: string }[];
+    const remote = bookmarksRes.body as { ref: string }[];
     const localRefs = new Set(getBookmarks().map((b) => b.ref));
     for (const b of remote) if (!localRefs.has(b.ref)) toggleBookmark(b.ref);
   }
 
   if (highlightsRes?.ok) {
-    const remote = (await highlightsRes.json()) as { ref: string; color: HighlightColor }[];
+    const remote = highlightsRes.body as { ref: string; color: HighlightColor }[];
     const local = new Set(getHighlights().map((h) => h.ref));
     for (const h of remote) if (!local.has(h.ref)) setHighlight(h.ref, h.color);
   }
 
   if (notesRes?.ok) {
-    const remote = (await notesRes.json()) as { ref: string; text: string }[];
+    const remote = notesRes.body as { ref: string; text: string }[];
     const local = new Set(getNotes().map((n) => n.ref));
     for (const n of remote) if (!local.has(n.ref)) setNote(n.ref, n.text);
   }
 
   if (posRes?.ok) {
-    const remote = (await posRes.json()) as {
+    const remote = posRes.body as {
       book: string;
       chapter: number;
       translation: string;
@@ -92,7 +84,7 @@ async function pullRemoteIntoLocal() {
   }
 
   if (prefsRes?.ok) {
-    const remote = (await prefsRes.json()) as {
+    const remote = prefsRes.body as {
       darkMode: boolean;
       fontSize: number;
       verseView: VerseViewMode;
@@ -120,21 +112,18 @@ async function pushAllLocal() {
     ...getBookmarks().map((b) =>
       authedFetch("/api/bookmarks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ref: b.ref }),
       }),
     ),
     ...getHighlights().map((h) =>
       authedFetch("/api/highlights", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ref: h.ref, color: h.color }),
       }),
     ),
     ...getNotes().map((n) =>
       authedFetch("/api/notes", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ref: n.ref, text: n.text }),
       }),
     ),
@@ -143,13 +132,11 @@ async function pushAllLocal() {
   if (pos) {
     await authedFetch("/api/reading-position", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ book: pos.book, chapter: pos.chapter, translation: pos.translation }),
     });
   }
   await authedFetch("/api/preferences", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       darkMode: getDarkMode(),
       fontSize: getFontSize(),

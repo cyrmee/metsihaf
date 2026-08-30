@@ -2,33 +2,36 @@
 
 import { useState, type FormEvent } from "react";
 import { LogIn, LogOut, Mail } from "lucide-react";
-import { supabase } from "@/lib/supabase.client";
+import { signIn, signOut, signUp } from "@/app/actions/auth";
 import { useSession } from "@/lib/use-session";
 
 /** Sign in/up form and account status, in Settings. Syncing itself is handled by AuthSyncProvider. */
 export function AccountSection() {
-  const session = useSession();
+  const { user, refresh } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [status, setStatus] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (session === undefined) return null;
+  if (user === undefined) return null;
 
-  if (session) {
+  if (user) {
     return (
       <div className="flex flex-col items-center gap-2">
         <p className="flex items-center gap-1.5 text-sm text-foreground">
           <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-          {session.user.email}
+          {user.email}
         </p>
         <p className="max-w-xs text-center text-xs text-muted-foreground">
           Bookmarks, highlights, notes and preferences sync to your account.
         </p>
         <button
           type="button"
-          onClick={() => supabase.auth.signOut()}
+          onClick={async () => {
+            await signOut();
+            await refresh();
+          }}
           className="focus-carbon mt-1 flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
         >
           <LogOut className="h-3.5 w-3.5" /> Sign out
@@ -41,18 +44,18 @@ export function AccountSection() {
     e.preventDefault();
     setStatus(null);
     setBusy(true);
-    const { error } =
-      mode === "signIn"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    const result =
+      mode === "signIn" ? await signIn(email, password) : await signUp(email, password);
     setBusy(false);
-    if (error) {
-      setStatus({ kind: "error", text: error.message });
+    if (result.error) {
+      setStatus({ kind: "error", text: result.error });
       return;
     }
-    if (mode === "signUp") {
+    if (mode === "signUp" && "needsConfirmation" in result && result.needsConfirmation) {
       setStatus({ kind: "info", text: "Check your email to confirm your account." });
+      return;
     }
+    await refresh();
   };
 
   return (

@@ -12,7 +12,7 @@ cd <repository-name>
 
 # Frontend (http://localhost:3000)
 npm install
-cp .env.local.example .env.local   # fill in NEXT_PUBLIC_SUPABASE_* values
+cp .env.local.example .env.local   # fill in SUPABASE_* values
 npm run dev
 
 # Backend API (http://localhost:4000), in a second terminal
