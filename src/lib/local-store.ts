@@ -108,7 +108,6 @@ const KEYS = {
   letterSpacing: "bible.letterSpacing",
   englishFont: "bible.englishFont",
   amharicFont: "bible.amharicFont",
-  showVerseSelector: "bible.showVerseSelector",
   recentSearches: "bible.recentSearches",
 } as const;
 
@@ -260,15 +259,6 @@ export function getVerseView(): VerseViewMode {
 
 export function setVerseView(mode: VerseViewMode) {
   write(KEYS.verseView, mode);
-}
-
-/** Whether the book/chapter picker includes a verse-picking step. Off by default. */
-export function getShowVerseSelector(): boolean {
-  return read<boolean>(KEYS.showVerseSelector, false);
-}
-
-export function setShowVerseSelector(on: boolean) {
-  write(KEYS.showVerseSelector, on);
 }
 
 export function getAccentTheme(): AccentTheme {

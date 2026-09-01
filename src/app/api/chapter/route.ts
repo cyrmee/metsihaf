@@ -4,7 +4,7 @@ import type { ChapterData, Footnote } from "@/lib/bible";
 import { BIBLE_CACHE_CONTROL } from "@/lib/cache-control";
 import { loadCrossrefs } from "@/lib/db/crossrefs";
 import { toApiError } from "@/lib/db/handle-prisma-error";
-import { getAvailableTranslations, getChapterRows } from "@/lib/db/verse-db";
+import { getAvailableTranslations, getChapterRows, getStudyNotes } from "@/lib/db/verse-db";
 import { asIn, asPositiveInt } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -30,7 +30,11 @@ export async function GET(request: Request) {
     }
 
     const crossRefs = loadCrossrefs();
-    const rows = await getChapterRows(translation, book, chapter);
+    const [rows, studyNotes] = await Promise.all([
+      getChapterRows(translation, book, chapter),
+      getStudyNotes(book, chapter),
+    ]);
+    const studyNoteByVerse = new Map(studyNotes.map((n) => [n.verse, n]));
     const verses = rows.map((r) => {
       const refs = new Set<string>();
       for (let v = r.verse; v <= r.verseEnd; v++) {
@@ -38,6 +42,7 @@ export async function GET(request: Request) {
       }
       const redLetter = r.redLetter as [number, number][] | null;
       const footnotes = r.footnotes as Footnote[] | null;
+      const studyNote = studyNoteByVerse.get(r.verse);
       return {
         verse: r.verse,
         verseEnd: r.verseEnd,
@@ -48,6 +53,9 @@ export async function GET(request: Request) {
         ...(footnotes ? { footnotes } : {}),
         ...(r.heading ? { heading: r.heading } : {}),
         ...(r.subheading ? { subheading: r.subheading } : {}),
+        ...(studyNote
+          ? { studyNote: { verseEnd: studyNote.verseEnd, text: studyNote.text, source: studyNote.source } }
+          : {}),
       };
     });
 

@@ -130,6 +130,24 @@ export async function getAvailableTranslations(): Promise<AvailableTranslation[]
   return rows;
 }
 
+export interface StudyNoteRow {
+  source: string;
+  /** Anchor verse — the first verse of the passage this note covers. */
+  verse: number;
+  /** Last verse of the passage this note covers. */
+  verseEnd: number;
+  text: string;
+}
+
+/** Every study-note commentary entry anchored in a chapter, ordered by verse number. Translation-independent, like cross-refs. */
+export function getStudyNotes(book: string, chapter: number): Promise<StudyNoteRow[]> {
+  return prisma.studyNote.findMany({
+    where: { book, chapter },
+    orderBy: { verse: "asc" },
+    select: { source: true, verse: true, verseEnd: true, text: true },
+  });
+}
+
 interface SearchRow {
   book: string;
   chapter: number;

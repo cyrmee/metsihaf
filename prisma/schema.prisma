@@ -1,9 +1,11 @@
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [btree_gin]
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 enum HighlightColor {
@@ -121,6 +123,32 @@ model Verse {
 
   @@id([version, book, chapter, verse])
   @@index([language, version])
+  // Full-text search index, managed outside Prisma's schema (expression indexes
+  // aren't representable in the Prisma schema language):
+  //   CREATE INDEX verse_version_fts_idx ON "Verse"
+  //     USING gin (version, to_tsvector('simple', text));
+  // Composite on (version, tsvector) rather than tsvector alone: search always
+  // filters by version, and GIN can't apply a plain btree "version = " condition
+  // as an index cond, so a text-only index made Postgres recheck every matching
+  // row from every version on the heap (~120ms for a ~2-version, 62k-row table,
+  // and it would only get worse as more translations are seeded). The btree_gin
+  // extension lets version ride in the same GIN index, cutting that recheck to
+  // near zero (<1ms).
+}
+
+model StudyNote {
+  /// Commentary this note comes from, e.g. "matthew-henry" — leaves room for more commentaries later.
+  source   String
+  book     String
+  chapter  Int
+  /// Anchor verse — the first verse of the passage this note covers.
+  verse    Int
+  /// Last verse of the passage this note covers (same as `verse` for a single-verse note).
+  verseEnd Int
+  text     String
+
+  @@id([source, book, chapter, verse])
+  @@index([book, chapter])
 }
 
 model Preference {

@@ -73,7 +73,7 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
           </div>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto py-1">
+        <div className="max-h-[50vh] overflow-y-auto px-1 pb-1">
           {versions.map((t) => {
             const active = t.id === value;
             return (
@@ -85,8 +85,10 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
                   onChange(t.id);
                   setOpen(false);
                 }}
-                className={`focus-carbon flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-left transition-colors ${
-                  active ? "bg-accent" : "hover:bg-accent/60"
+                className={`focus-carbon flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left transition-colors ${
+                  active
+                    ? "border-primary bg-accent"
+                    : "border-transparent hover:border-border hover:bg-accent/60"
                 }`}
               >
                 <span>

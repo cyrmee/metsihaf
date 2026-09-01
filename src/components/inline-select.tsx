@@ -86,8 +86,10 @@ export function InlineSelect<T extends string>({
                   setOpen(false);
                 }}
                 style={opt.style}
-                className={`focus-carbon flex w-full items-center justify-between gap-2 rounded-full px-2.5 py-2 text-left text-sm ${
-                  active ? "bg-accent text-primary" : "text-foreground hover:bg-accent/60"
+                className={`focus-carbon flex w-full items-center justify-between gap-2 rounded-full border px-2.5 py-2 text-left text-sm ${
+                  active
+                    ? "border-primary bg-accent text-primary"
+                    : "border-transparent text-foreground hover:border-border hover:bg-accent/60"
                 }`}
               >
                 <span className="truncate">{opt.label}</span>

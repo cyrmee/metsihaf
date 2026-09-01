@@ -33,6 +33,14 @@ export interface Footnote {
   note: string;
 }
 
+/** A study-note commentary entry anchored at a verse, covering it through `verseEnd`. Translation-independent — the same for every version. */
+export interface StudyNote {
+  verseEnd: number;
+  text: string;
+  /** Commentary this note comes from, e.g. "matthew-henry". */
+  source: string;
+}
+
 export interface ChapterVerse {
   verse: number;
   text: string;
@@ -50,6 +58,8 @@ export interface ChapterVerse {
   heading?: string;
   /** Secondary heading below `heading` (e.g. a speaker label in Song of Solomon). */
   subheading?: string;
+  /** Commentary note anchored at this verse — present only on the verse a note's passage starts at. */
+  studyNote?: StudyNote;
 }
 
 export interface ChapterData {

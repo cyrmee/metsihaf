@@ -32,7 +32,6 @@ import {
   getLineSpacing,
   getNotes,
   getReadingPosition,
-  getShowVerseSelector,
   getVerseView,
   onStoreChange,
   saveReadingPosition,
@@ -43,7 +42,6 @@ import {
   setLetterSpacing,
   setLineSpacing,
   setNote,
-  setShowVerseSelector,
   setVerseView,
   toggleBookmark,
 } from "@/lib/local-store";
@@ -88,7 +86,6 @@ async function pullRemoteIntoLocal() {
     setAccentTheme(remote.accentTheme);
     setLineSpacing(remote.lineSpacing);
     setLetterSpacing(remote.letterSpacing);
-    setShowVerseSelector(remote.showVerseSelector);
   }
 }
 
@@ -110,7 +107,6 @@ async function pushAllLocal() {
     accentTheme: getAccentTheme(),
     lineSpacing: getLineSpacing(),
     letterSpacing: getLetterSpacing(),
-    showVerseSelector: getShowVerseSelector(),
   });
 }
 

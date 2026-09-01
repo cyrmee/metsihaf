@@ -3,10 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Moon, Pilcrow, Rows3, Sun, Trash2 } from "lucide-react";
 import { InlineSelect } from "@/components/inline-select";
-import { TranslationSwitcher } from "@/components/translation-switcher";
 import { AccountSection } from "@/components/account-section";
-import { LANGUAGE_LABELS, type TranslationId } from "@/lib/bible";
-import { useTranslations } from "@/lib/use-translations";
 import {
   AMHARIC_FONT_STACKS,
   clearStudyData,
@@ -17,8 +14,6 @@ import {
   getFontSize,
   getLetterSpacing,
   getLineSpacing,
-  getPreferredTranslation,
-  getShowVerseSelector,
   getVerseView,
   setAmharicFont,
   setDarkMode,
@@ -26,8 +21,6 @@ import {
   setFontSize,
   setLetterSpacing,
   setLineSpacing,
-  setPreferredTranslation,
-  setShowVerseSelector,
   setVerseView,
   type AmharicFont,
   type EnglishFont,
@@ -117,9 +110,6 @@ export function SettingsClient() {
   const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
   const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
   const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
-  const [translation, setTranslationState] = useState<TranslationId>("HSAB");
-  const [showVerseSelector, setShowVerseSelectorState] = useState(false);
-  const { byId } = useTranslations();
 
   useEffect(() => {
     setDark(getDarkMode());
@@ -129,8 +119,6 @@ export function SettingsClient() {
     setLetterSpacingState(getLetterSpacing());
     setEnglishFontState(getEnglishFont());
     setAmharicFontState(getAmharicFont());
-    setTranslationState(getPreferredTranslation() as TranslationId);
-    setShowVerseSelectorState(getShowVerseSelector());
   }, []);
 
   const changeDark = (on: boolean) => {
@@ -147,11 +135,6 @@ export function SettingsClient() {
   const changeViewMode = (mode: VerseViewMode) => {
     setViewModeState(mode);
     setVerseView(mode);
-  };
-
-  const changeShowVerseSelector = (on: boolean) => {
-    setShowVerseSelectorState(on);
-    setShowVerseSelector(on);
   };
 
   const changeLineSpacing = (spacing: LineSpacing) => {
@@ -172,11 +155,6 @@ export function SettingsClient() {
   const changeAmharicFont = (font: AmharicFont) => {
     setAmharicFontState(font);
     setAmharicFont(font);
-  };
-
-  const changeTranslation = (id: TranslationId) => {
-    setTranslationState(id);
-    setPreferredTranslation(id);
   };
 
   const clearLocalData = () => {
@@ -352,38 +330,6 @@ export function SettingsClient() {
                 <Pilcrow className="h-4 w-4" />
               </button>
             </div>
-          </SettingsRow>
-        </SettingsGroup>
-
-        <SettingsGroup title="Translation & navigation">
-          <SettingsRow label="Default translation">
-            <div className="flex flex-col items-start gap-1">
-              <TranslationSwitcher value={translation} onChange={changeTranslation} size="sm" />
-              <span className="text-xs text-muted-foreground">
-                {LANGUAGE_LABELS[byId[translation]?.language ?? ""] ?? byId[translation]?.language}
-              </span>
-            </div>
-          </SettingsRow>
-
-          <SettingsRow
-            label="Verse selector"
-            description="Add a verse step to the book/chapter picker. Off by default, jumping straight to the start of a chapter."
-          >
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showVerseSelector}
-              onClick={() => changeShowVerseSelector(!showVerseSelector)}
-              className={`focus-carbon flex h-8 w-14 shrink-0 items-center rounded-full border px-1 transition-colors ${
-                showVerseSelector ? "border-primary bg-primary" : "border-border bg-card"
-              }`}
-            >
-              <span
-                className={`h-6 w-6 rounded-full bg-foreground transition-transform ${
-                  showVerseSelector ? "translate-x-6" : "translate-x-0"
-                }`}
-              />
-            </button>
           </SettingsRow>
         </SettingsGroup>
 

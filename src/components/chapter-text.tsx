@@ -9,11 +9,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Asterisk, Bookmark, Check, Copy, Link2, NotebookPen, Share2, X } from "lucide-react";
+import {
+  Asterisk,
+  BookOpen,
+  Bookmark,
+  Check,
+  Copy,
+  Link2,
+  NotebookPen,
+  Share2,
+  X,
+} from "lucide-react";
 import type { ChapterData, Translation } from "@/lib/bible";
 import { BOOK_BY_ID, bookName, type BibleBook } from "@/data/books";
 import { CrossRefsModal } from "@/components/cross-refs-modal";
 import { FootnotesModal } from "@/components/footnotes-modal";
+import { StudyNoteModal } from "@/components/study-note-modal";
 import {
   AMHARIC_FONT_STACKS,
   ENGLISH_FONT_STACKS,
@@ -54,6 +65,22 @@ const HIGHLIGHT_CLASSES: Record<HighlightColor, string> = {
   pink: "bg-highlight-pink/20 text-foreground dark:bg-transparent dark:text-highlight-pink",
 };
 
+// Dark theme highlights work by tinting the text instead of washing the
+// background, but red-letter text is already tinted (red) — so when a
+// highlighted verse contains red letters, give just that red-letter span a
+// background wash instead, matching how light mode shows the highlight.
+const RED_LETTER_DARK_HIGHLIGHT_BG: Record<HighlightColor, string> = {
+  yellow: "dark:bg-highlight-yellow/20",
+  red: "dark:bg-highlight-red/20",
+  orange: "dark:bg-highlight-orange/20",
+  brown: "dark:bg-highlight-brown/20",
+  green: "dark:bg-highlight-green/20",
+  teal: "dark:bg-highlight-teal/20",
+  blue: "dark:bg-highlight-blue/20",
+  purple: "dark:bg-highlight-purple/20",
+  pink: "dark:bg-highlight-pink/20",
+};
+
 const HIGHLIGHT_SWATCHES: { color: HighlightColor; className: string; label: string }[] = [
   { color: "yellow", className: "bg-highlight-yellow", label: "Yellow" },
   { color: "red", className: "bg-highlight-red", label: "Red" },
@@ -75,6 +102,7 @@ function renderVerseText(
   text: string,
   redLetter?: [number, number][],
   footnotes?: { at: number }[],
+  highlightColor?: HighlightColor,
 ): ReactNode {
   if (!redLetter?.length && !footnotes?.length) return text;
 
@@ -102,7 +130,10 @@ function renderVerseText(
     const segment = text.slice(cursor, end);
     nodes.push(
       redDepth > 0 ? (
-        <span key={key++} className="text-red-600 dark:text-red-400">
+        <span
+          key={key++}
+          className={`text-red-600 dark:text-red-400 ${highlightColor ? RED_LETTER_DARK_HIGHLIGHT_BG[highlightColor] : ""}`}
+        >
           {segment}
         </span>
       ) : (
@@ -202,6 +233,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [openRefsVerse, setOpenRefsVerse] = useState<number | null>(null);
   const [openNotesVerse, setOpenNotesVerse] = useState<number | null>(null);
+  const [openStudyNoteVerse, setOpenStudyNoteVerse] = useState<number | null>(null);
   const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
   const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
   const storeVersion = useStoreVersion();
@@ -264,10 +296,13 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
     });
   };
 
-  const verseClass = (verse: number, isSelected: boolean) => {
-    const highlight = interactive
+  const verseHighlight = (verse: number) =>
+    interactive
       ? getHighlight(highlightRef(data.translation, `${data.book}.${data.chapter}.${verse}`))
       : undefined;
+
+  const verseClass = (verse: number, isSelected: boolean) => {
+    const highlight = verseHighlight(verse);
     return [
       interactive ? "cursor-pointer" : "",
       highlight ? HIGHLIGHT_CLASSES[highlight.color] : "text-foreground",
@@ -317,6 +352,20 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           <Asterisk className="h-3.5 w-3.5" />
         </button>
       )}
+      {interactive && data.verses.find((v) => v.verse === verse)?.studyNote && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenStudyNoteVerse(verse);
+          }}
+          aria-label="Open study note"
+          title="Study note"
+          className="focus-carbon ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+        </button>
+      )}
       {interactive && isBookmarked(ref) && (
         <Bookmark className="ml-1 inline h-3.5 w-3.5 fill-primary align-baseline text-primary" />
       )}
@@ -363,7 +412,8 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                         <sup className="mr-1 select-none text-[0.65em] font-semibold text-muted-foreground">
                           {v.label ?? v.verse}
                         </sup>
-                        {renderVerseText(v.text, v.redLetter, v.footnotes)} {marks(v.verse, ref)}
+                        {renderVerseText(v.text, v.redLetter, v.footnotes, verseHighlight(v.verse)?.color)}{" "}
+                        {marks(v.verse, ref)}
                       </span>
                     );
                   })}
@@ -391,7 +441,9 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                     <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-muted-foreground">
                       {v.label ?? v.verse}
                     </sup>
-                    <span>{renderVerseText(v.text, v.redLetter, v.footnotes)}</span>
+                    <span>
+                      {renderVerseText(v.text, v.redLetter, v.footnotes, verseHighlight(v.verse)?.color)}
+                    </span>
                     {marks(v.verse, ref)}
                   </p>
                 </div>
@@ -431,6 +483,22 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           footnotes={data.verses.find((v) => v.verse === openNotesVerse)?.footnotes ?? []}
           open={openNotesVerse !== null}
           onClose={() => setOpenNotesVerse(null)}
+        />
+      )}
+
+      {interactive && book && openStudyNoteVerse !== null && (
+        <StudyNoteModal
+          sourceLabel={(() => {
+            const note = data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNote;
+            const range =
+              note && note.verseEnd > openStudyNoteVerse
+                ? `${openStudyNoteVerse}-${note.verseEnd}`
+                : `${openStudyNoteVerse}`;
+            return `${bookName(book, translation.language)} ${data.chapter}:${range}`;
+          })()}
+          note={data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNote ?? null}
+          open={openStudyNoteVerse !== null}
+          onClose={() => setOpenStudyNoteVerse(null)}
         />
       )}
     </>
@@ -487,6 +555,7 @@ function SelectionToolbar({
   const [panel, setPanel] = useState<"note" | null>(null);
   const [refsOpen, setRefsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [studyNoteOpen, setStudyNoteOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -504,10 +573,12 @@ function SelectionToolbar({
       setPanel(null);
       setRefsOpen(false);
       setNotesOpen(false);
+      setStudyNoteOpen(false);
     }
     if (selectedList.length !== 1) {
       setRefsOpen(false);
       setNotesOpen(false);
+      setStudyNoteOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
@@ -590,13 +661,10 @@ function SelectionToolbar({
       <div
         className={
           "pointer-events-none fixed inset-x-0 z-40 flex justify-center px-3 " +
-          "bottom-[calc(var(--nav-pill-clearance)+env(safe-area-inset-bottom))] md:bottom-6 md:px-4"
+          "bottom-[calc(var(--nav-pill-clearance)+0.75rem+env(safe-area-inset-bottom))] md:bottom-6 md:px-4"
         }
       >
-        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-3xl border border-border bg-card pointer-events-auto shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] duration-200">
-          {/* Rubric tab — echoes the left-bar mark on a selected verse in the text above. */}
-          <div className="absolute inset-y-0 left-0 w-1 rounded-l-3xl bg-primary" aria-hidden="true" />
-
+        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-3xl border border-border/50 bg-card/10 pointer-events-auto shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md duration-200">
           {panel === "note" && selectedList.length > 0 && (
             <div className="py-2.5 pr-3 pl-4">
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -724,6 +792,17 @@ function SelectionToolbar({
                 <Asterisk className="h-3.5 w-3.5" />
               </button>
 
+              <button
+                type="button"
+                disabled={!single?.studyNote}
+                onClick={() => setStudyNoteOpen(true)}
+                aria-label="Study note"
+                title="Study note"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+              </button>
+
               <div
                 className="ml-1.5 flex items-center gap-1.5"
                 role="group"
@@ -787,6 +866,19 @@ function SelectionToolbar({
           footnotes={single.footnotes ?? []}
           open={notesOpen}
           onClose={() => setNotesOpen(false)}
+        />
+      )}
+
+      {single && (
+        <StudyNoteModal
+          sourceLabel={`${bookName(book, translation.language)} ${chapter}:${
+            single.studyNote && single.studyNote.verseEnd > single.verse
+              ? `${single.verse}-${single.studyNote.verseEnd}`
+              : (single.label ?? single.verse)
+          }`}
+          note={single.studyNote ?? null}
+          open={studyNoteOpen}
+          onClose={() => setStudyNoteOpen(false)}
         />
       )}
     </>
