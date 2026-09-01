@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Search as SearchIcon, X } from "lucide-react";
 import { formatRef } from "@/data/books";
-import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID, type TranslationId } from "@/lib/bible";
+import { LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/bible";
 import {
   addRecentSearch,
   getPreferredTranslation,
@@ -12,6 +12,7 @@ import {
   removeRecentSearch,
   type RecentSearch,
 } from "@/lib/local-store";
+import { useTranslations } from "@/lib/use-translations";
 import { TranslationSwitcher } from "@/components/translation-switcher";
 
 interface Hit {
@@ -30,9 +31,12 @@ async function searchTranslation(translation: TranslationId, query: string): Pro
 }
 
 /** Previous/next verse in the same chapter, for a one-line reading of context around a hit. */
-async function getVerseContext(refs: string[]): Promise<Record<string, string | null>> {
+async function getVerseContext(
+  translation: TranslationId,
+  refs: string[],
+): Promise<Record<string, string | null>> {
   if (refs.length === 0) return {};
-  const params = new URLSearchParams({ refs: refs.join(",") });
+  const params = new URLSearchParams({ translation, refs: refs.join(",") });
   const res = await fetch(`/api/verse-text?${params.toString()}`);
   if (!res.ok) return {};
   const body = (await res.json()) as { texts?: Record<string, string | null> };
@@ -49,7 +53,7 @@ function neighborRefs(ref: string): { prevRef: string | null; nextRef: string } 
 }
 
 export function SearchClient() {
-  const [translation, setTranslation] = useState<TranslationId>("AMH");
+  const [translation, setTranslation] = useState<TranslationId>("HSAB");
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,13 +61,14 @@ export function SearchClient() {
   const [recent, setRecent] = useState<RecentSearch[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+  const { byId } = useTranslations();
 
   useEffect(() => {
     setTranslation(getPreferredTranslation() as TranslationId);
     setRecent(getRecentSearches());
   }, []);
 
-  const language = TRANSLATION_BY_ID[translation].language;
+  const language = byId[translation]?.language ?? "en";
   const languageFontClass = LANGUAGE_FONT_CLASS[language] ?? "";
 
   const runSearch = async (q: string, t: TranslationId) => {
@@ -82,15 +87,14 @@ export function SearchClient() {
       addRecentSearch(trimmed, t);
       setRecent(getRecentSearches());
 
-      // Context previews only exist for the local Amharic text.
-      if (t === "AMH" && results.length > 0) {
+      if (results.length > 0) {
         const neighborList = results.map((h) => neighborRefs(h.ref));
         const wanted = Array.from(
           new Set(
             neighborList.flatMap((n) => [n.prevRef, n.nextRef].filter((r): r is string => !!r)),
           ),
         );
-        const texts = await getVerseContext(wanted);
+        const texts = await getVerseContext(t, wanted);
         if (requestId !== requestIdRef.current) return;
         setContext(texts);
       } else {
@@ -136,7 +140,7 @@ export function SearchClient() {
           Search
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Full-text search across {TRANSLATION_BY_ID[translation].name}.
+          Full-text search across {byId[translation]?.id ?? translation}.
         </p>
       </div>
 
@@ -171,11 +175,11 @@ export function SearchClient() {
                 <button
                   type="button"
                   onClick={() => runRecent(r)}
-                  className={`focus-carbon flex items-center gap-1.5 border border-border bg-card py-1.5 pr-1.5 pl-3 text-sm text-foreground hover:bg-accent ${LANGUAGE_FONT_CLASS[TRANSLATION_BY_ID[r.translation as TranslationId]?.language ?? "en"] ?? ""}`}
+                  className={`focus-carbon flex items-center gap-1.5 border border-border bg-card py-1.5 pr-1.5 pl-3 text-sm text-foreground hover:bg-accent ${LANGUAGE_FONT_CLASS[byId[r.translation]?.language ?? "en"] ?? ""}`}
                 >
                   {r.query}
                   <span className="text-xs text-muted-foreground">
-                    {TRANSLATION_BY_ID[r.translation as TranslationId]?.label ?? r.translation}
+                    {byId[r.translation]?.id ?? r.translation}
                   </span>
                 </button>
                 <button

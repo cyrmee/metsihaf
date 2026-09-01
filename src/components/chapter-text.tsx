@@ -2,8 +2,7 @@
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Bookmark, Check, Copy, Link2, NotebookPen, Share2, X } from "lucide-react";
-import type { ChapterData, TranslationId } from "@/lib/bible";
-import { TRANSLATION_BY_ID } from "@/lib/bible";
+import type { ChapterData, Translation } from "@/lib/bible";
 import { BOOK_BY_ID, bookName, type BibleBook } from "@/data/books";
 import { CrossRefsModal } from "@/components/cross-refs-modal";
 import {
@@ -21,6 +20,7 @@ import {
   type VerseViewMode,
 } from "@/lib/local-store";
 import { useStoreVersion } from "@/lib/use-store-version";
+import { useTranslations } from "@/lib/use-translations";
 
 // Light theme: an actual highlighter wash behind the text (text stays the
 // normal ink color). Dark theme keeps the old colored-text treatment — a
@@ -106,18 +106,13 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
     setSelected(new Set());
   }, [data.book, data.chapter, data.translation]);
 
-  const translation = TRANSLATION_BY_ID[data.translation];
+  const { byId } = useTranslations();
+  const translation: Translation = byId[data.translation] ?? {
+    id: data.translation,
+    language: "en",
+  };
   const isAmharic = translation.language === "am";
   const book = BOOK_BY_ID[data.book];
-
-  if (data.unavailable) {
-    return (
-      <div className="border border-border bg-card p-6 text-center">
-        <h3 className="text-sm font-semibold text-card-foreground">{translation.name}</h3>
-        <p className="mt-2 text-sm text-muted-foreground">Coming soon.</p>
-      </div>
-    );
-  }
 
   const toggleVerse = (verse: number) => {
     if (!interactive) return;
@@ -249,6 +244,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           sourceLabel={`${bookName(book, translation.language)} ${data.chapter}:${
             data.verses.find((v) => v.verse === openRefsVerse)?.label ?? openRefsVerse
           }`}
+          translation={data.translation}
           refs={data.verses.find((v) => v.verse === openRefsVerse)?.refs ?? []}
           open={openRefsVerse !== null}
           onClose={() => setOpenRefsVerse(null)}
@@ -283,7 +279,7 @@ interface SelectionToolbarProps {
   bookId: string;
   book: BibleBook;
   chapter: number;
-  translation: (typeof TRANSLATION_BY_ID)[TranslationId];
+  translation: Translation;
   verses: ChapterData["verses"];
   selected: Set<number>;
   onClear: () => void;
@@ -342,7 +338,7 @@ function SelectionToolbar({
 
   const copyVerses = async () => {
     const text = [
-      `${label} (${translation.name})`,
+      `${label} (${translation.id})`,
       ...selectedList.map((v) => `${v.label ?? v.verse} ${v.text}`),
     ].join("\n");
     try {
@@ -578,6 +574,7 @@ function SelectionToolbar({
       {single && (
         <CrossRefsModal
           sourceLabel={`${bookName(book, translation.language)} ${chapter}:${single.label ?? single.verse}`}
+          translation={translation.id}
           refs={single.refs}
           open={refsOpen}
           onClose={() => setRefsOpen(false)}

@@ -59,7 +59,7 @@ export async function getAccessToken(): Promise<string | null> {
   return data.session.access_token;
 }
 
-/** Forces a refresh even if the access-token cookie hasn't expired yet (used after a 401 from the backend). */
+/** Forces a refresh even if the access-token cookie hasn't expired yet (used after a 401 from the API). */
 export async function forceRefreshAccessToken(): Promise<string | null> {
   const store = await cookies();
   const refreshToken = store.get(REFRESH_COOKIE)?.value;

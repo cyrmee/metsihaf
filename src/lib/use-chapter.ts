@@ -15,7 +15,7 @@ async function fetchChapter(
   return res.json() as Promise<ChapterData>;
 }
 
-/** Load a chapter for any translation (local Amharic or remote licensed API). */
+/** Load a chapter for any version stored in the Verse table. */
 export function useChapter(translation: TranslationId, book: string, chapter: number) {
   return useQuery<ChapterData>({
     queryKey: ["chapter", translation, book, chapter],

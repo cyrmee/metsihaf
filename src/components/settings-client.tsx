@@ -4,8 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Moon, Pilcrow, Rows3, Sun, Trash2 } from "lucide-react";
 import { TranslationSwitcher } from "@/components/translation-switcher";
 import { AccountSection } from "@/components/account-section";
-import type { TranslationId } from "@/lib/bible";
-import { TRANSLATION_BY_ID } from "@/lib/bible";
+import { LANGUAGE_LABELS, type TranslationId } from "@/lib/bible";
+import { useTranslations } from "@/lib/use-translations";
 import {
   clearStudyData,
   getAccentTheme,
@@ -110,8 +110,9 @@ export function SettingsClient() {
   const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
   const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
-  const [translation, setTranslationState] = useState<TranslationId>("AMH");
+  const [translation, setTranslationState] = useState<TranslationId>("HSAB");
   const [showVerseSelector, setShowVerseSelectorState] = useState(false);
+  const { byId } = useTranslations();
 
   useEffect(() => {
     setDark(getDarkMode());
@@ -349,7 +350,7 @@ export function SettingsClient() {
             <div className="flex flex-col items-start gap-1">
               <TranslationSwitcher value={translation} onChange={changeTranslation} size="sm" />
               <span className="text-xs text-muted-foreground">
-                {TRANSLATION_BY_ID[translation].name}
+                {LANGUAGE_LABELS[byId[translation]?.language ?? ""] ?? byId[translation]?.language}
               </span>
             </div>
           </SettingsRow>
@@ -404,7 +405,7 @@ export function SettingsClient() {
               <span className="font-ethiopic text-muted-foreground">(መጽሐፍ)</span> — Amharic for
               &ldquo;book&rdquo; or &ldquo;scripture&rdquo; — is a Bible reader built around the
               Amharic 1954 translation, with cross-references, search, and personal study tools.
-              English translations (NIV, ESV, NLT, NASB) are coming soon.
+              More translations are coming soon.
             </p>
             <p className="text-muted-foreground">
               Your bookmarks, highlights, and notes stay with you: on this device by default, or

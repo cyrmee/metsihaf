@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
-import type { TranslationId } from "@/lib/bible";
-import { searchRows } from "@/lib/db/amharic-db";
+import { BIBLE_CACHE_CONTROL } from "@/lib/cache-control";
 import { toApiError } from "@/lib/db/handle-prisma-error";
+import { getAvailableTranslations, searchRows } from "@/lib/db/verse-db";
 import { asIn } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
-const TRANSLATIONS: TranslationId[] = ["AMH", "NIV", "ESV", "NLT", "NASB"];
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const translation = asIn(searchParams.get("translation"), TRANSLATIONS, "translation");
+    const available = await getAvailableTranslations();
+    const translation = asIn(
+      searchParams.get("translation"),
+      available.map((t) => t.id),
+      "translation",
+    );
     const query = searchParams.get("query") ?? "";
     if (query.length < 2) {
       return NextResponse.json(
@@ -20,11 +23,10 @@ export async function GET(request: Request) {
       );
     }
 
-    if (translation !== "AMH") {
-      return NextResponse.json({ unavailable: `${translation} isn't available yet.` });
-    }
-
-    return NextResponse.json({ results: searchRows(query) });
+    return NextResponse.json(
+      { results: await searchRows(translation, query) },
+      { headers: { "Cache-Control": BIBLE_CACHE_CONTROL } },
+    );
   } catch (exception) {
     const err = toApiError(exception);
     return NextResponse.json(err.toBody(), { status: err.status });

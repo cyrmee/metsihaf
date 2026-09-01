@@ -11,8 +11,9 @@ import {
 import { useRouter } from "next/navigation";
 import { ListOrdered, Search, X } from "lucide-react";
 import { BOOKS, bookName, type BibleBook } from "@/data/books";
-import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID, type TranslationId } from "@/lib/bible";
+import { LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/bible";
 import { useChapter } from "@/lib/use-chapter";
+import { useTranslations } from "@/lib/use-translations";
 import { getShowVerseSelector, setShowVerseSelector } from "@/lib/local-store";
 
 interface BookChapterModalProps {
@@ -82,7 +83,8 @@ export function BookChapterModal({
     };
   }, [open, onClose]);
 
-  const language = TRANSLATION_BY_ID[translation].language;
+  const { byId } = useTranslations();
+  const language = byId[translation]?.language ?? "en";
   const languageFontClass = LANGUAGE_FONT_CLASS[language] ?? "";
   const { data, isLoading } = useChapter(translation, selectedBook.id, selectedChapter);
 

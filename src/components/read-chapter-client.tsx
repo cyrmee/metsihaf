@@ -15,9 +15,10 @@ import { ChapterText, type ChapterTextHandle } from "@/components/chapter-text";
 import { BookChapterModal } from "@/components/book-chapter-modal";
 import { TranslationSwitcher } from "@/components/translation-switcher";
 import { BOOK_BY_ID, bookName, neighborChapter } from "@/data/books";
-import { LANGUAGE_FONT_CLASS, TRANSLATION_BY_ID, type TranslationId } from "@/lib/bible";
+import { LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/bible";
 import { useChapter } from "@/lib/use-chapter";
 import { useChapterNavigation } from "@/lib/use-chapter-nav";
+import { useTranslations } from "@/lib/use-translations";
 import {
   getFontSize,
   getLetterSpacing,
@@ -57,7 +58,7 @@ export function ReadChapterClient({
   const chapter = Number(chapterParam);
   const book = BOOK_BY_ID[bookId];
 
-  const [translation, setTranslation] = useState<TranslationId>("AMH");
+  const [translation, setTranslation] = useState<TranslationId>("HSAB");
   const [fontSize, setFontSizeState] = useState(18);
   const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
@@ -66,6 +67,8 @@ export function ReadChapterClient({
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const fontMenuRef = useRef<HTMLDivElement>(null);
   const chapterTextRef = useRef<ChapterTextHandle>(null);
+  const { byId } = useTranslations();
+  const language = byId[translation]?.language ?? "en";
 
   useEffect(() => {
     setTranslation(getPreferredTranslation() as TranslationId);
@@ -158,9 +161,9 @@ export function ReadChapterClient({
           className="focus-carbon group flex items-center gap-1.5"
         >
           <h1
-            className={`font-display text-3xl font-semibold tracking-tight text-foreground ${LANGUAGE_FONT_CLASS[TRANSLATION_BY_ID[translation].language] ?? ""}`}
+            className={`font-display text-3xl font-semibold tracking-tight text-foreground ${LANGUAGE_FONT_CLASS[language] ?? ""}`}
           >
-            {bookName(book, TRANSLATION_BY_ID[translation].language)} {chapter}
+            {bookName(book, language)} {chapter}
           </h1>
           <ChevronDown className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
         </button>
@@ -332,8 +335,8 @@ export function ReadChapterClient({
         {prev && (
           <Link
             href={`/read/${prev.book}/${prev.chapter}`}
-            aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, TRANSLATION_BY_ID[translation].language) : ""} ${prev.chapter}`}
-            title={`${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, TRANSLATION_BY_ID[translation].language) : ""} ${prev.chapter}`}
+            aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
+            title={`${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
             className="focus-carbon flex h-10 w-10 items-center justify-center border border-border text-foreground hover:bg-accent"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -342,8 +345,8 @@ export function ReadChapterClient({
         {next && (
           <Link
             href={`/read/${next.book}/${next.chapter}`}
-            aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, TRANSLATION_BY_ID[translation].language) : ""} ${next.chapter}`}
-            title={`${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, TRANSLATION_BY_ID[translation].language) : ""} ${next.chapter}`}
+            aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
+            title={`${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
             className="focus-carbon flex h-10 w-10 items-center justify-center border border-border text-foreground hover:bg-accent"
           >
             <ChevronRight className="h-4 w-4" />

@@ -178,7 +178,7 @@ export function saveReadingPosition(pos: Omit<ReadingPosition, "updatedAt">) {
 // ---- Preferences ----
 
 export function getPreferredTranslation(): string {
-  return read<string>(KEYS.translation, "AMH");
+  return read<string>(KEYS.translation, "HSAB");
 }
 
 export function setPreferredTranslation(id: string) {

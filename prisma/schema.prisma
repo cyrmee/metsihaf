@@ -101,6 +101,20 @@ model ReadingPosition {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Verse {
+  version  String
+  language String
+  book     String
+  chapter  Int
+  verse    Int
+  verseEnd Int
+  label    String
+  text     String
+
+  @@id([version, book, chapter, verse])
+  @@index([language, version])
+}
+
 model Preference {
   id                String        @id @default(uuid())
   userId            String        @unique

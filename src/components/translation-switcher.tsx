@@ -2,13 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import {
-  LANGUAGE_LABELS,
-  TRANSLATIONS,
-  TRANSLATION_BY_ID,
-  type LanguageId,
-  type TranslationId,
-} from "@/lib/bible";
+import { LANGUAGE_LABELS, type LanguageId, type TranslationId } from "@/lib/bible";
+import { useTranslations } from "@/lib/use-translations";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +12,6 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-const LANGUAGES = Array.from(new Set(TRANSLATIONS.map((t) => t.language)));
 
 interface TranslationSwitcherProps {
   value: TranslationId;
@@ -29,15 +22,23 @@ interface TranslationSwitcherProps {
 /** Trigger button that opens a modal: pick a language, then a version in that language. */
 export function TranslationSwitcher({ value, onChange, size = "md" }: TranslationSwitcherProps) {
   const [open, setOpen] = useState(false);
-  const [language, setLanguage] = useState<LanguageId>(TRANSLATION_BY_ID[value].language);
-  const current = TRANSLATION_BY_ID[value];
+  const { translations, byId } = useTranslations();
+  const current = byId[value];
+  const [language, setLanguage] = useState<LanguageId>(current?.language ?? "en");
 
   // Re-sync the language filter to whatever's actually selected each time the modal opens.
   useEffect(() => {
-    if (open) setLanguage(TRANSLATION_BY_ID[value].language);
-  }, [open, value]);
+    if (open && current) setLanguage(current.language);
+  }, [open, current]);
 
-  const versions = useMemo(() => TRANSLATIONS.filter((t) => t.language === language), [language]);
+  const languages = useMemo(
+    () => Array.from(new Set(translations.map((t) => t.language))),
+    [translations],
+  );
+  const versions = useMemo(
+    () => translations.filter((t) => t.language === language),
+    [translations, language],
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -46,7 +47,7 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
           size === "sm" ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm"
         }`}
       >
-        <span>{size === "sm" ? (current?.label ?? value) : (current?.name ?? value)}</span>
+        <span>{current?.id ?? value}</span>
         <ChevronDown className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} />
       </DialogTrigger>
       <DialogContent className="max-w-sm gap-0 p-0">
@@ -63,12 +64,12 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
             <select
               id="translation-language"
               value={language}
-              onChange={(e) => setLanguage(e.target.value as LanguageId)}
+              onChange={(e) => setLanguage(e.target.value)}
               className="focus-carbon w-full appearance-none bg-card px-3 py-2.5 text-center text-sm font-medium text-foreground"
             >
-              {LANGUAGES.map((l) => (
+              {languages.map((l) => (
                 <option key={l} value={l}>
-                  {LANGUAGE_LABELS[l]}
+                  {LANGUAGE_LABELS[l] ?? l}
                 </option>
               ))}
             </select>
@@ -96,9 +97,11 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
                   <span
                     className={`block text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}
                   >
-                    {t.label}
+                    {t.id}
                   </span>
-                  <span className="block text-xs text-muted-foreground">{t.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {LANGUAGE_LABELS[t.language] ?? t.language}
+                  </span>
                 </span>
                 {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
               </button>

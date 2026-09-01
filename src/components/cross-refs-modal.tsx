@@ -5,9 +5,12 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { BOOK_BY_ID, formatRef } from "@/data/books";
 
-async function getAmharicVerseTexts(refs: string[]): Promise<Record<string, string | null>> {
+async function getVerseTexts(
+  translation: string,
+  refs: string[],
+): Promise<Record<string, string | null>> {
   if (refs.length === 0) return {};
-  const params = new URLSearchParams({ refs: refs.join(",") });
+  const params = new URLSearchParams({ translation, refs: refs.join(",") });
   const res = await fetch(`/api/verse-text?${params.toString()}`);
   if (!res.ok) return {};
   const body = (await res.json()) as { texts?: Record<string, string | null> };
@@ -17,6 +20,8 @@ async function getAmharicVerseTexts(refs: string[]): Promise<Record<string, stri
 interface CrossRefsModalProps {
   /** The verse these cross-references belong to, e.g. "Genesis 1:1". */
   sourceLabel: string;
+  /** Version to fetch preview text from — the one the source verse is being read in. */
+  translation: string;
   refs: string[];
   open: boolean;
   onClose: () => void;
@@ -31,7 +36,13 @@ interface RefEntry {
 }
 
 /** Popup listing every cross-reference for a verse, with a text preview for each. */
-export function CrossRefsModal({ sourceLabel, refs, open, onClose }: CrossRefsModalProps) {
+export function CrossRefsModal({
+  sourceLabel,
+  translation,
+  refs,
+  open,
+  onClose,
+}: CrossRefsModalProps) {
   const [entries, setEntries] = useState<RefEntry[] | null>(null);
 
   useEffect(() => {
@@ -39,7 +50,7 @@ export function CrossRefsModal({ sourceLabel, refs, open, onClose }: CrossRefsMo
     setEntries(null);
     let cancelled = false;
     (async () => {
-      const texts = await getAmharicVerseTexts(refs);
+      const texts = await getVerseTexts(translation, refs);
       const resolved = refs.map((target) => {
         const [book, chapter, verse] = target.split(".");
         return {
@@ -55,7 +66,7 @@ export function CrossRefsModal({ sourceLabel, refs, open, onClose }: CrossRefsMo
     return () => {
       cancelled = true;
     };
-  }, [open, refs]);
+  }, [open, refs, translation]);
 
   useEffect(() => {
     if (!open) return;

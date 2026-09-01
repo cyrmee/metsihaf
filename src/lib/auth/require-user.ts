@@ -11,8 +11,7 @@ export class UnauthenticatedError extends Error {
 
 /**
  * Verifies the caller's Supabase session (from the httpOnly session cookies)
- * and returns the local Prisma `User` row, upserted by `authUid`. Replaces
- * the NestJS backend's `SupabaseAuthGuard` + `@CurrentUser()`.
+ * and returns the local Prisma `User` row, upserted by `authUid`.
  */
 export async function requireUser() {
   const token = await getAccessToken();

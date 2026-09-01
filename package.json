@@ -1,5 +1,5 @@
 {
-  "name": "metsihaf-frontend",
+  "name": "metsihaf",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "prisma generate",
-    "db:build": "node backend/scripts/build-amharic-db.mjs"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

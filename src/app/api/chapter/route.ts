@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
 import { BOOK_BY_ID } from "@/data/books";
-import type { ChapterData, TranslationId } from "@/lib/bible";
-import { getChapterRows } from "@/lib/db/amharic-db";
+import type { ChapterData } from "@/lib/bible";
+import { BIBLE_CACHE_CONTROL } from "@/lib/cache-control";
 import { loadCrossrefs } from "@/lib/db/crossrefs";
 import { toApiError } from "@/lib/db/handle-prisma-error";
+import { getAvailableTranslations, getChapterRows } from "@/lib/db/verse-db";
 import { asIn, asPositiveInt } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
-const TRANSLATIONS: TranslationId[] = ["AMH", "NIV", "ESV", "NLT", "NASB"];
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const translation = asIn(searchParams.get("translation"), TRANSLATIONS, "translation");
+    const available = await getAvailableTranslations();
+    const translation = asIn(
+      searchParams.get("translation"),
+      available.map((t) => t.id),
+      "translation",
+    );
     const book = searchParams.get("book") ?? "";
     const chapter = asPositiveInt(searchParams.get("chapter"), "chapter");
 
@@ -25,19 +29,8 @@ export async function GET(request: Request) {
       );
     }
 
-    if (translation !== "AMH") {
-      const body: ChapterData = {
-        book,
-        chapter,
-        translation,
-        verses: [],
-        unavailable: `${translation} isn't available yet.`,
-      };
-      return NextResponse.json(body);
-    }
-
     const crossRefs = loadCrossrefs();
-    const rows = getChapterRows(book, chapter);
+    const rows = await getChapterRows(translation, book, chapter);
     const verses = rows.map((r) => {
       const refs = new Set<string>();
       for (let v = r.verse; v <= r.verseEnd; v++) {
@@ -53,7 +46,7 @@ export async function GET(request: Request) {
     });
 
     const body: ChapterData = { book, chapter, translation, verses };
-    return NextResponse.json(body);
+    return NextResponse.json(body, { headers: { "Cache-Control": BIBLE_CACHE_CONTROL } });
   } catch (exception) {
     const err = toApiError(exception);
     return NextResponse.json(err.toBody(), { status: err.status });
