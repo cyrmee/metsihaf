@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Columns2,
   Pilcrow,
   Rows3,
 } from "lucide-react";
@@ -152,155 +151,153 @@ export function ReadChapterClient({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="mb-6 flex flex-col items-center gap-3 text-center">
+      <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
           aria-label="Change book or chapter"
           title="Change book or chapter"
-          className="focus-carbon group flex items-center gap-1.5"
+          className="focus-carbon group flex h-8 items-center gap-2.5 border border-border px-3 hover:bg-accent"
         >
-          <h1
-            className={`font-display text-3xl font-semibold tracking-tight text-foreground ${LANGUAGE_FONT_CLASS[language] ?? ""}`}
-          >
+          <h1 className="sr-only">
             {bookName(book, language)} {chapter}
           </h1>
-          <ChevronDown className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-        </button>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <TranslationSwitcher value={translation} onChange={changeTranslation} size="sm" />
-          <Link
-            href={`/compare/${bookId}/${chapter}`}
-            aria-label="Compare translations"
-            className="focus-carbon flex h-8 items-center gap-1.5 border border-border px-2.5 text-xs font-medium text-foreground hover:bg-accent"
+          <span
+            aria-hidden="true"
+            className={`text-xs font-medium tracking-[0.2em] text-primary uppercase ${LANGUAGE_FONT_CLASS[language] ?? ""}`}
           >
-            <Columns2 className="h-3.5 w-3.5" /> Compare
-          </Link>
-          <div className="relative" ref={fontMenuRef}>
-            <button
-              type="button"
-              aria-label="Text size"
-              aria-expanded={fontMenuOpen}
-              onClick={() => setFontMenuOpen((v) => !v)}
-              className={`focus-carbon flex h-8 w-8 items-center justify-center border ${
-                fontMenuOpen
-                  ? "border-primary bg-accent text-primary"
-                  : "border-border text-foreground hover:bg-accent"
-              }`}
-            >
-              <CaseSensitive className="h-4 w-4" />
-            </button>
-            {fontMenuOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-64 border border-border bg-card p-3 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Text size
-                </p>
-                <div className="mb-3 flex items-center gap-1">
-                  {FONT_SIZES.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => changeFontSize(size)}
-                      aria-label={`Text size ${size}`}
-                      aria-pressed={fontSize === size}
-                      className={`focus-carbon flex h-8 flex-1 items-center justify-center border font-serif ${
-                        fontSize === size
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-foreground hover:bg-accent"
-                      }`}
-                      style={{ fontSize: `${Math.min(size, 19)}px` }}
-                    >
-                      A
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Line spacing
-                </p>
-                <div
-                  className="mb-3 flex items-center gap-1"
-                  role="group"
-                  aria-label="Line spacing"
-                >
-                  {LINE_SPACINGS.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => changeLineSpacing(s.id)}
-                      aria-pressed={lineSpacing === s.id}
-                      className={`focus-carbon flex h-8 flex-1 items-center justify-center border text-xs font-medium ${
-                        lineSpacing === s.id
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-foreground hover:bg-accent"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Letter spacing
-                </p>
-                <div
-                  className="mb-3 flex items-center gap-1"
-                  role="group"
-                  aria-label="Letter spacing"
-                >
-                  {LETTER_SPACINGS.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => changeLetterSpacing(s.id)}
-                      aria-pressed={letterSpacing === s.id}
-                      className={`focus-carbon flex h-8 flex-1 items-center justify-center border text-xs font-medium ${
-                        letterSpacing === s.id
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-foreground hover:bg-accent"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Layout
-                </p>
-                <div className="flex items-center gap-1" role="group" aria-label="Verse layout">
+            {bookName(book, language)}
+          </span>
+          <span aria-hidden="true" className="h-4 w-px bg-border" />
+          <span
+            aria-hidden="true"
+            className="font-serif text-base leading-none font-semibold tracking-tight text-foreground"
+          >
+            {chapter}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
+        </button>
+        <TranslationSwitcher value={translation} onChange={changeTranslation} size="sm" />
+        <div className="relative" ref={fontMenuRef}>
+          <button
+            type="button"
+            aria-label="Text size"
+            aria-expanded={fontMenuOpen}
+            onClick={() => setFontMenuOpen((v) => !v)}
+            className={`focus-carbon flex h-8 w-8 items-center justify-center border ${
+              fontMenuOpen
+                ? "border-primary bg-accent text-primary"
+                : "border-border text-foreground hover:bg-accent"
+            }`}
+          >
+            <CaseSensitive className="h-4 w-4" />
+          </button>
+          {fontMenuOpen && (
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-64 border border-border bg-card p-3 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Text size
+              </p>
+              <div className="mb-3 flex items-center gap-1">
+                {FONT_SIZES.map((size) => (
                   <button
+                    key={size}
                     type="button"
-                    onClick={() => changeViewMode("line")}
-                    aria-label="Verse per line"
-                    aria-pressed={viewMode === "line"}
-                    title="Verse per line"
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center border ${
-                      viewMode === "line"
+                    onClick={() => changeFontSize(size)}
+                    aria-label={`Text size ${size}`}
+                    aria-pressed={fontSize === size}
+                    className={`focus-carbon flex h-8 flex-1 items-center justify-center border font-serif ${
+                      fontSize === size
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border text-foreground hover:bg-accent"
                     }`}
+                    style={{ fontSize: `${Math.min(size, 19)}px` }}
                   >
-                    <Rows3 className="h-3.5 w-3.5" />
+                    A
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => changeViewMode("paragraph")}
-                    aria-label="Paragraph"
-                    aria-pressed={viewMode === "paragraph"}
-                    title="Paragraph"
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center border ${
-                      viewMode === "paragraph"
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    <Pilcrow className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                ))}
               </div>
-            )}
-          </div>
+
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Line spacing
+              </p>
+              <div className="mb-3 flex items-center gap-1" role="group" aria-label="Line spacing">
+                {LINE_SPACINGS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => changeLineSpacing(s.id)}
+                    aria-pressed={lineSpacing === s.id}
+                    className={`focus-carbon flex h-8 flex-1 items-center justify-center border text-xs font-medium ${
+                      lineSpacing === s.id
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Letter spacing
+              </p>
+              <div
+                className="mb-3 flex items-center gap-1"
+                role="group"
+                aria-label="Letter spacing"
+              >
+                {LETTER_SPACINGS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => changeLetterSpacing(s.id)}
+                    aria-pressed={letterSpacing === s.id}
+                    className={`focus-carbon flex h-8 flex-1 items-center justify-center border text-xs font-medium ${
+                      letterSpacing === s.id
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Layout
+              </p>
+              <div className="flex items-center gap-1" role="group" aria-label="Verse layout">
+                <button
+                  type="button"
+                  onClick={() => changeViewMode("line")}
+                  aria-label="Verse per line"
+                  aria-pressed={viewMode === "line"}
+                  title="Verse per line"
+                  className={`focus-carbon flex h-8 flex-1 items-center justify-center border ${
+                    viewMode === "line"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <Rows3 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeViewMode("paragraph")}
+                  aria-label="Paragraph"
+                  aria-pressed={viewMode === "paragraph"}
+                  title="Paragraph"
+                  className={`focus-carbon flex h-8 flex-1 items-center justify-center border ${
+                    viewMode === "paragraph"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <Pilcrow className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

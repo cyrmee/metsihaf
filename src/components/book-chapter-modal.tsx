@@ -200,7 +200,7 @@ export function BookChapterModal({
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col bg-background shadow-[0_16px_48px_-16px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-display text-xl font-semibold text-foreground">Go to</h2>
           <div className="flex items-center gap-1">
             <button
@@ -278,12 +278,16 @@ export function BookChapterModal({
                             type="button"
                             onClick={() => selectBook(b)}
                             aria-current={active ? "true" : undefined}
-                            className={`focus-carbon block w-full truncate px-2.5 py-2 text-left text-sm font-medium transition-colors ${
-                              active
-                                ? "bg-primary text-primary-foreground"
-                                : "text-card-foreground hover:bg-accent"
+                            className={`focus-carbon flex w-full items-center gap-1.5 truncate px-2.5 py-2 text-left text-sm font-medium transition-colors ${
+                              active ? "text-primary" : "text-card-foreground hover:bg-accent"
                             } ${languageFontClass}`}
                           >
+                            <span
+                              aria-hidden="true"
+                              className={`font-ethiopic shrink-0 text-xs ${active ? "opacity-100" : "opacity-0"}`}
+                            >
+                              ፠
+                            </span>
                             {bookName(b, language)}
                           </button>
                         );
@@ -333,10 +337,10 @@ export function BookChapterModal({
                     type="button"
                     onClick={() => pickChapter(n)}
                     aria-current={active ? "true" : undefined}
-                    className={`focus-carbon flex h-9 items-center justify-center text-sm font-medium ${
+                    className={`focus-carbon flex h-9 items-center justify-center border text-sm font-medium ${
                       active
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-foreground hover:bg-accent"
+                        ? "border-primary text-primary font-semibold"
+                        : "border-transparent bg-background text-foreground hover:bg-accent"
                     }`}
                   >
                     {n}

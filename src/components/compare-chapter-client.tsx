@@ -2,7 +2,7 @@
 
 import { forwardRef, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChapterText, type ChapterTextHandle } from "@/components/chapter-text";
 import { BookChapterModal } from "@/components/book-chapter-modal";
 import { TranslationSwitcher } from "@/components/translation-switcher";
@@ -85,29 +85,32 @@ export function CompareChapterClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-7 flex flex-col items-center gap-3 text-center">
+      <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
           aria-label="Change book or chapter"
           title="Change book or chapter"
-          className="focus-carbon group flex items-center gap-1.5"
+          className="focus-carbon group flex h-8 items-center gap-2.5 border border-border px-3 hover:bg-accent"
         >
-          <h1
-            className={`font-display text-3xl font-semibold tracking-tight text-foreground ${LANGUAGE_FONT_CLASS[leftLanguage] ?? ""}`}
-          >
+          <h1 className="sr-only">
             {bookName(book, leftLanguage)} {chapter}
           </h1>
-          <ChevronDown className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-        </button>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Link
-            href={`/read/${bookId}/${chapter}`}
-            className="focus-carbon flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
+          <span
+            aria-hidden="true"
+            className={`text-xs font-medium tracking-[0.2em] text-primary uppercase ${LANGUAGE_FONT_CLASS[leftLanguage] ?? ""}`}
           >
-            <BookOpen className="h-3.5 w-3.5" /> Single view
-          </Link>
-        </div>
+            {bookName(book, leftLanguage)}
+          </span>
+          <span aria-hidden="true" className="h-4 w-px bg-border" />
+          <span
+            aria-hidden="true"
+            className="font-serif text-base leading-none font-semibold tracking-tight text-foreground"
+          >
+            {chapter}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
+        </button>
       </div>
 
       <BookChapterModal
@@ -178,8 +181,8 @@ const ComparePane = forwardRef<ChapterTextHandle, ComparePaneProps>(function Com
   ref,
 ) {
   return (
-    <div className="bg-card">
-      <div className="sticky top-12 z-10 flex flex-wrap items-center justify-center gap-2 bg-card px-3 py-2">
+    <div>
+      <div className="flex flex-wrap items-center justify-center gap-2 px-3 py-2">
         <TranslationSwitcher value={translation} onChange={onChange} size="sm" />
         <span className="text-xs text-muted-foreground">
           {LANGUAGE_LABELS[language ?? ""] ?? language}
