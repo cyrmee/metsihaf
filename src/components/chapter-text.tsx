@@ -338,11 +338,6 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           fontFamily,
         }}
       >
-        {book && (
-          <h2 className="mb-6 px-2 text-2xl font-bold text-foreground">
-            {bookName(book, translation.language)} {data.chapter}
-          </h2>
-        )}
         {viewMode === "paragraph"
           ? groupByHeading(data.verses).map((group, gi) => (
               <div key={gi}>

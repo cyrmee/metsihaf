@@ -8,7 +8,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { book: bookId, chapter } = await params;
   const book = BOOK_BY_ID[bookId];
   const name = book ? book.nameEn : "Bible";
-  const title = `${name} ${chapter} — Metsihaf Bible Reader`;
+  const title = `${name} - Metsihaf Bible`;
   const description = `Read ${name} chapter ${chapter} in Amharic 1954, NIV, ESV, NLT or NASB with cross-references, highlights and notes.`;
   return {
     title,
