@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { BOOK_BY_ID } from "@/data/books";
-import type { ChapterData } from "@/lib/bible";
+import type { ChapterData, Footnote } from "@/lib/bible";
 import { BIBLE_CACHE_CONTROL } from "@/lib/cache-control";
 import { loadCrossrefs } from "@/lib/db/crossrefs";
 import { toApiError } from "@/lib/db/handle-prisma-error";
@@ -36,12 +36,18 @@ export async function GET(request: Request) {
       for (let v = r.verse; v <= r.verseEnd; v++) {
         for (const ref of crossRefs[`${book}.${chapter}.${v}`] ?? []) refs.add(ref);
       }
+      const redLetter = r.redLetter as [number, number][] | null;
+      const footnotes = r.footnotes as Footnote[] | null;
       return {
         verse: r.verse,
         verseEnd: r.verseEnd,
         label: r.label,
         text: r.text,
         refs: [...refs],
+        ...(redLetter ? { redLetter } : {}),
+        ...(footnotes ? { footnotes } : {}),
+        ...(r.heading ? { heading: r.heading } : {}),
+        ...(r.subheading ? { subheading: r.subheading } : {}),
       };
     });
 

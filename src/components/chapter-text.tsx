@@ -1,10 +1,19 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Bookmark, Check, Copy, Link2, NotebookPen, Share2, X } from "lucide-react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Asterisk, Bookmark, Check, Copy, Link2, NotebookPen, Share2, X } from "lucide-react";
 import type { ChapterData, Translation } from "@/lib/bible";
 import { BOOK_BY_ID, bookName, type BibleBook } from "@/data/books";
 import { CrossRefsModal } from "@/components/cross-refs-modal";
+import { FootnotesModal } from "@/components/footnotes-modal";
 import {
   getHighlight,
   getNote,
@@ -49,6 +58,103 @@ const HIGHLIGHT_SWATCHES: { color: HighlightColor; className: string; label: str
   { color: "pink", className: "bg-highlight-pink", label: "Pink" },
 ];
 
+/**
+ * Renders a verse's text with red-letter spans styled and footnote anchors
+ * marked with a lettered superscript (a, b, c…), in source order. Both are
+ * optional per-translation markup carried on the verse itself.
+ */
+function renderVerseText(
+  text: string,
+  redLetter?: [number, number][],
+  footnotes?: { at: number }[],
+): ReactNode {
+  if (!redLetter?.length && !footnotes?.length) return text;
+
+  type Event =
+    | { pos: number; kind: "redStart" }
+    | { pos: number; kind: "redEnd" }
+    | { pos: number; kind: "note"; letter: string };
+  const events: Event[] = [];
+  for (const [start, end] of redLetter ?? []) {
+    events.push({ pos: start, kind: "redStart" }, { pos: end, kind: "redEnd" });
+  }
+  (footnotes ?? []).forEach((f, i) => {
+    events.push({ pos: f.at, kind: "note", letter: String.fromCharCode(97 + i) });
+  });
+  // At the same offset, close a red span and place any note marker before opening the next span.
+  const order = { redEnd: 0, note: 1, redStart: 2 };
+  events.sort((a, b) => a.pos - b.pos || order[a.kind] - order[b.kind]);
+
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  let redDepth = 0;
+  let key = 0;
+  const flush = (end: number) => {
+    if (end <= cursor) return;
+    const segment = text.slice(cursor, end);
+    nodes.push(
+      redDepth > 0 ? (
+        <span key={key++} className="text-red-600 dark:text-red-400">
+          {segment}
+        </span>
+      ) : (
+        <span key={key++}>{segment}</span>
+      ),
+    );
+    cursor = end;
+  };
+  for (const e of events) {
+    flush(e.pos);
+    if (e.kind === "redStart") redDepth++;
+    else if (e.kind === "redEnd") redDepth--;
+    else
+      nodes.push(
+        <sup key={key++} className="ml-0.5 select-none text-[0.65em] font-semibold text-primary">
+          {e.letter}
+        </sup>,
+      );
+  }
+  flush(text.length);
+  return nodes;
+}
+
+/** A run of consecutive verses under the same section heading (or no heading, for the chapter's opening verses before its first one). */
+interface VerseGroup {
+  heading?: string;
+  subheading?: string;
+  verses: ChapterData["verses"];
+}
+
+/** Splits a chapter's verses into groups at each heading, for paragraph view — a heading is block-level, so it can't sit inside the single flowing `<p>` a paragraph normally renders as. */
+function groupByHeading(verses: ChapterData["verses"]): VerseGroup[] {
+  const groups: VerseGroup[] = [];
+  for (const v of verses) {
+    if (v.heading || groups.length === 0) {
+      groups.push({
+        ...(v.heading ? { heading: v.heading } : {}),
+        ...(v.subheading ? { subheading: v.subheading } : {}),
+        verses: [],
+      });
+    }
+    groups[groups.length - 1]!.verses.push(v);
+  }
+  return groups;
+}
+
+/** A section heading, e.g. "Giving to the Needy" — only present for translations whose source marks them (currently BSB). */
+function SectionHeading({ heading, subheading }: { heading: string; subheading?: string }) {
+  return (
+    <div className="mt-8 mb-2 px-2 first:mt-0">
+      <h2 className="font-display text-2xl font-bold italic text-primary">{heading}</h2>
+      {subheading && (
+        <p className="mt-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {subheading}
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface ChapterTextProps {
   data: ChapterData;
   fontSize: number;
@@ -79,6 +185,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
 ) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [openRefsVerse, setOpenRefsVerse] = useState<number | null>(null);
+  const [openNotesVerse, setOpenNotesVerse] = useState<number | null>(null);
   const storeVersion = useStoreVersion();
   void storeVersion; // re-render on store changes
   const containerRef = useRef<HTMLDivElement>(null);
@@ -163,6 +270,20 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           <Link2 className="h-3.5 w-3.5" />
         </button>
       )}
+      {interactive && (data.verses.find((v) => v.verse === verse)?.footnotes?.length ?? 0) > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenNotesVerse(verse);
+          }}
+          aria-label="Open footnotes"
+          title="Footnotes"
+          className="focus-carbon ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
+        >
+          <Asterisk className="h-3.5 w-3.5" />
+        </button>
+      )}
       {interactive && isBookmarked(ref) && (
         <Bookmark className="ml-1 inline h-3.5 w-3.5 fill-primary align-baseline text-primary" />
       )}
@@ -183,48 +304,63 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           letterSpacing: LETTER_SPACING_VALUES[letterSpacing],
         }}
       >
-        {viewMode === "paragraph" ? (
-          <p className="px-2 py-1">
-            {data.verses.map((v) => {
+        {viewMode === "paragraph"
+          ? groupByHeading(data.verses).map((group, gi) => (
+              <div key={gi}>
+                {group.heading && (
+                  <SectionHeading
+                    heading={group.heading}
+                    {...(group.subheading ? { subheading: group.subheading } : {})}
+                  />
+                )}
+                <p className="px-2 py-1">
+                  {group.verses.map((v) => {
+                    const ref = `${data.book}.${data.chapter}.${v.verse}`;
+                    const isSelected = selected.has(v.verse);
+                    return (
+                      <span
+                        key={v.verse}
+                        id={`v${v.verse}`}
+                        onClick={() => toggleVerse(v.verse)}
+                        className={`box-decoration-clone mr-2 px-0.5 py-1 ${verseClass(v.verse, isSelected)}`}
+                      >
+                        {extraAnchors(v)}
+                        <sup className="mr-1 select-none text-[0.65em] font-semibold text-primary">
+                          {v.label ?? v.verse}
+                        </sup>
+                        {renderVerseText(v.text, v.redLetter, v.footnotes)} {marks(v.verse, ref)}
+                      </span>
+                    );
+                  })}
+                </p>
+              </div>
+            ))
+          : data.verses.map((v) => {
               const ref = `${data.book}.${data.chapter}.${v.verse}`;
               const isSelected = selected.has(v.verse);
               return (
-                <span
-                  key={v.verse}
-                  id={`v${v.verse}`}
-                  onClick={() => toggleVerse(v.verse)}
-                  className={`box-decoration-clone mr-2 px-0.5 py-1 ${verseClass(v.verse, isSelected)}`}
-                >
-                  {extraAnchors(v)}
-                  <sup className="mr-1 select-none text-[0.65em] font-semibold text-primary">
-                    {v.label ?? v.verse}
-                  </sup>
-                  {v.text} {marks(v.verse, ref)}
-                </span>
+                <div key={v.verse}>
+                  {v.heading && (
+                    <SectionHeading
+                      heading={v.heading}
+                      {...(v.subheading ? { subheading: v.subheading } : {})}
+                    />
+                  )}
+                  <p
+                    id={`v${v.verse}`}
+                    onClick={() => toggleVerse(v.verse)}
+                    className={`px-2 py-0.5 ${verseClass(v.verse, isSelected)}`}
+                  >
+                    {extraAnchors(v)}
+                    <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-primary">
+                      {v.label ?? v.verse}
+                    </sup>
+                    <span>{renderVerseText(v.text, v.redLetter, v.footnotes)}</span>
+                    {marks(v.verse, ref)}
+                  </p>
+                </div>
               );
             })}
-          </p>
-        ) : (
-          data.verses.map((v) => {
-            const ref = `${data.book}.${data.chapter}.${v.verse}`;
-            const isSelected = selected.has(v.verse);
-            return (
-              <p
-                key={v.verse}
-                id={`v${v.verse}`}
-                onClick={() => toggleVerse(v.verse)}
-                className={`px-2 py-0.5 ${verseClass(v.verse, isSelected)}`}
-              >
-                {extraAnchors(v)}
-                <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-primary">
-                  {v.label ?? v.verse}
-                </sup>
-                <span>{v.text}</span>
-                {marks(v.verse, ref)}
-              </p>
-            );
-          })
-        )}
       </div>
 
       {interactive && book && selected.size > 0 && (
@@ -248,6 +384,17 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           refs={data.verses.find((v) => v.verse === openRefsVerse)?.refs ?? []}
           open={openRefsVerse !== null}
           onClose={() => setOpenRefsVerse(null)}
+        />
+      )}
+
+      {interactive && book && openNotesVerse !== null && (
+        <FootnotesModal
+          sourceLabel={`${bookName(book, translation.language)} ${data.chapter}:${
+            data.verses.find((v) => v.verse === openNotesVerse)?.label ?? openNotesVerse
+          }`}
+          footnotes={data.verses.find((v) => v.verse === openNotesVerse)?.footnotes ?? []}
+          open={openNotesVerse !== null}
+          onClose={() => setOpenNotesVerse(null)}
         />
       )}
     </>
@@ -303,6 +450,7 @@ function SelectionToolbar({
   void storeVersion;
   const [panel, setPanel] = useState<"note" | null>(null);
   const [refsOpen, setRefsOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -318,8 +466,12 @@ function SelectionToolbar({
     if (selectedList.length === 0) {
       setPanel(null);
       setRefsOpen(false);
+      setNotesOpen(false);
     }
-    if (selectedList.length !== 1) setRefsOpen(false);
+    if (selectedList.length !== 1) {
+      setRefsOpen(false);
+      setNotesOpen(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
@@ -524,6 +676,17 @@ function SelectionToolbar({
                 <Link2 className="h-3.5 w-3.5" />
               </button>
 
+              <button
+                type="button"
+                disabled={!single || (single.footnotes?.length ?? 0) === 0}
+                onClick={() => setNotesOpen(true)}
+                aria-label="Footnotes"
+                title="Footnotes"
+                className="focus-carbon flex h-8 w-8 items-center justify-center border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Asterisk className="h-3.5 w-3.5" />
+              </button>
+
               <div
                 className="ml-1.5 flex items-center gap-1.5"
                 role="group"
@@ -578,6 +741,15 @@ function SelectionToolbar({
           refs={single.refs}
           open={refsOpen}
           onClose={() => setRefsOpen(false)}
+        />
+      )}
+
+      {single && (
+        <FootnotesModal
+          sourceLabel={`${bookName(book, translation.language)} ${chapter}:${single.label ?? single.verse}`}
+          footnotes={single.footnotes ?? []}
+          open={notesOpen}
+          onClose={() => setNotesOpen(false)}
         />
       )}
     </>

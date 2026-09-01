@@ -110,6 +110,14 @@ model Verse {
   verseEnd Int
   label    String
   text     String
+  /// Character ranges in `text` spoken by Jesus, e.g. [[0, 42]] — null when the source has no such markup.
+  redLetter Json?
+  /// Translator footnotes anchored to a character offset in `text`, e.g. [{"at": 30, "note": "Or 'and he saw'"}] — null when the source has none.
+  footnotes Json?
+  /// Section heading displayed just above this verse, e.g. "Giving to the Needy" for Matthew 6:1 — null except on the verse a section starts at.
+  heading String?
+  /// Secondary heading below `heading` (e.g. a speaker label in Song of Solomon) — null unless the source has one alongside `heading`.
+  subheading String?
 
   @@id([version, book, chapter, verse])
   @@index([language, version])

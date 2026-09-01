@@ -11,7 +11,7 @@ import { LANGUAGE_LABELS, LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/
 import { useChapter } from "@/lib/use-chapter";
 import { useChapterNavigation } from "@/lib/use-chapter-nav";
 import { useTranslations } from "@/lib/use-translations";
-import { getFontSize } from "@/lib/local-store";
+import { getFontSize, getPreferredTranslation, saveReadingPosition } from "@/lib/local-store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function CompareChapterClient({
@@ -31,24 +31,21 @@ export function CompareChapterClient({
   const leftTextRef = useRef<ChapterTextHandle>(null);
   const rightTextRef = useRef<ChapterTextHandle>(null);
   const isMobile = useIsMobile();
-  const { translations, byId } = useTranslations();
-  const autoPickedRight = useRef(false);
+  const { byId } = useTranslations();
 
   useEffect(() => {
     setFontSizeState(Math.max(15, getFontSize() - 1));
   }, []);
 
-  // Default the right column to a different version than the left one, once
-  // the available versions have loaded — only ever done once, so it never
-  // overrides a choice the user made themselves.
+  // Default the right column to whatever version is currently selected on
+  // the single reading view, so switching into Compare carries it over
+  // instead of always starting from HSAB. Read on mount (not as the
+  // `useState` initializer) to match the server-rendered default and avoid
+  // a hydration mismatch — same pattern read-chapter-client.tsx uses for
+  // its own translation state.
   useEffect(() => {
-    if (autoPickedRight.current || translations.length <= 1) return;
-    const other = translations.find((t) => t.id !== left);
-    if (other) {
-      setRight(other.id);
-      autoPickedRight.current = true;
-    }
-  }, [translations, left]);
+    setRight(getPreferredTranslation() as TranslationId);
+  }, []);
 
   // Two narrower columns need a smaller size to keep from wrapping every word.
   const effectiveFontSize = isMobile ? Math.max(13, fontSize - 3) : fontSize;
@@ -66,6 +63,14 @@ export function CompareChapterClient({
     nextHref: next ? `/compare/${next.book}/${next.chapter}` : null,
     disabled: !isValid || pickerOpen,
   });
+
+  // Keep the shared last-viewed position (read by both this page and the
+  // nav bar's Read/Compare tabs) up to date while comparing too, the same
+  // way the read page does — otherwise switching tabs after browsing here
+  // would jump back to wherever Read was last left off instead of here.
+  useEffect(() => {
+    if (isValid) saveReadingPosition({ book: bookId, chapter, translation: left });
+  }, [bookId, chapter, left, isValid]);
 
   if (!isValid) {
     return (

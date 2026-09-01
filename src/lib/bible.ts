@@ -20,6 +20,13 @@ export const LANGUAGE_FONT_CLASS: Partial<Record<string, string>> = {
   am: "font-ethiopic",
 };
 
+/** A translator footnote anchored to a character offset in a verse's `text`. */
+export interface Footnote {
+  /** Character offset in `text` the note is anchored to. */
+  at: number;
+  note: string;
+}
+
 export interface ChapterVerse {
   verse: number;
   text: string;
@@ -29,6 +36,14 @@ export interface ChapterVerse {
   verseEnd?: number;
   /** Display label, e.g. "13-14" for a combined verse. Falls back to `verse` when absent. */
   label?: string;
+  /** [start, end) character ranges in `text` spoken by Jesus — present only for translations whose source marks this (e.g. BSB). */
+  redLetter?: [number, number][];
+  /** Translator footnotes anchored within `text` — present only for translations whose source has them. */
+  footnotes?: Footnote[];
+  /** Section heading displayed above this verse — present only on the verse a section starts at. */
+  heading?: string;
+  /** Secondary heading below `heading` (e.g. a speaker label in Song of Solomon). */
+  subheading?: string;
 }
 
 export interface ChapterData {
