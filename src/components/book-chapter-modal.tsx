@@ -201,7 +201,7 @@ export function BookChapterModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/10 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-display text-xl font-semibold text-foreground">Go to</h2>
           <div className="flex items-center gap-1">

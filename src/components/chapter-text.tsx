@@ -598,7 +598,7 @@ function SelectionToolbar({
           "bottom-[calc(var(--nav-pill-clearance)+env(safe-area-inset-bottom))] md:bottom-6 md:px-4"
         }
       >
-        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-3xl border border-border/50 bg-card/10 pointer-events-auto shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md duration-200">
+        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-3xl border border-border bg-card pointer-events-auto shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] duration-200">
           {/* Rubric tab — echoes the left-bar mark on a selected verse in the text above. */}
           <div className="absolute inset-y-0 left-0 w-1 rounded-l-3xl bg-primary" aria-hidden="true" />
 

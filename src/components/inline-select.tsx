@@ -71,7 +71,7 @@ export function InlineSelect<T extends string>({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-40 max-h-56 overflow-y-auto rounded-2xl border border-border/50 bg-card/10 p-1 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md"
+          className="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-40 max-h-56 overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]"
         >
           {options.map((opt) => {
             const active = opt.id === value;

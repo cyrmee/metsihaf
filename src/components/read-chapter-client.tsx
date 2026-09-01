@@ -241,7 +241,7 @@ export function ReadChapterClient({
             <CaseSensitive className="h-4 w-4" />
           </button>
           {fontMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-64 rounded-3xl border border-border/50 bg-card/10 p-3 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md">
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-64 rounded-3xl border border-border bg-card p-3 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Text size
               </p>
