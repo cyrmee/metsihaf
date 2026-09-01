@@ -15,6 +15,12 @@ export const LANGUAGE_LABELS: Partial<Record<string, string>> = {
   am: "Amharic",
 };
 
+/** Full translation name, for display next to its abbreviation in the version picker. Falls back to just the abbreviation for a version not listed here. */
+export const TRANSLATION_NAMES: Partial<Record<string, string>> = {
+  BSB: "Berean Standard Bible",
+  HSAB: "Amharic Bible (1954)",
+};
+
 /** Font utility class for rendering a given language's script. Falls back to the default serif when absent. */
 export const LANGUAGE_FONT_CLASS: Partial<Record<string, string>> = {
   am: "font-ethiopic",

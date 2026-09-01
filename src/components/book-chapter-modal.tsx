@@ -60,10 +60,12 @@ export function BookChapterModal({
       setSelectedChapter(chapter);
       setQuery("");
       setVerseSelectorEnabled(getShowVerseSelector());
+      // Land on the book/chapter list ready to scroll, not with the search
+      // box focused (which pops the keyboard on mobile before the user has
+      // asked to search) — tapping the search field is how you opt into it.
       requestAnimationFrame(() => {
         currentBookRef.current?.scrollIntoView({ block: "center" });
         currentChapterRef.current?.scrollIntoView({ block: "center" });
-        searchInputRef.current?.focus();
       });
     }
     // Only reset when the modal opens, not on every prop change while it's open.
@@ -199,7 +201,7 @@ export function BookChapterModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col bg-background shadow-[0_16px_48px_-16px_rgba(0,0,0,0.5)]">
+      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/10 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-display text-xl font-semibold text-foreground">Go to</h2>
           <div className="flex items-center gap-1">
@@ -209,7 +211,7 @@ export function BookChapterModal({
               aria-pressed={verseSelectorEnabled}
               aria-label="Jump to a specific verse"
               title="Jump to a specific verse"
-              className={`focus-carbon flex h-8 w-8 items-center justify-center border ${
+              className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-full border ${
                 verseSelectorEnabled
                   ? "border-primary bg-accent text-primary"
                   : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -221,7 +223,7 @@ export function BookChapterModal({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="focus-carbon flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground"
+              className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -255,7 +257,7 @@ export function BookChapterModal({
                   }}
                   placeholder="Find…"
                   aria-label="Find a book"
-                  className="focus-carbon w-full border border-input bg-background py-2 pr-2 pl-8 text-sm text-foreground"
+                  className="focus-carbon w-full rounded-full border border-input bg-background py-2 pr-2 pl-8 text-sm text-foreground"
                 />
               </div>
             </div>
@@ -278,7 +280,7 @@ export function BookChapterModal({
                             type="button"
                             onClick={() => selectBook(b)}
                             aria-current={active ? "true" : undefined}
-                            className={`focus-carbon flex w-full items-center gap-1.5 truncate px-2.5 py-2 text-left text-sm font-medium transition-colors ${
+                            className={`focus-carbon flex w-full items-center gap-1.5 truncate rounded-full px-2.5 py-2 text-left text-sm font-medium transition-colors ${
                               active ? "text-primary" : "text-card-foreground hover:bg-accent"
                             } ${languageFontClass}`}
                           >
@@ -337,7 +339,7 @@ export function BookChapterModal({
                     type="button"
                     onClick={() => pickChapter(n)}
                     aria-current={active ? "true" : undefined}
-                    className={`focus-carbon flex h-9 items-center justify-center border text-sm font-medium ${
+                    className={`focus-carbon flex h-9 items-center justify-center rounded-full border text-sm font-medium ${
                       active
                         ? "border-primary text-primary font-semibold"
                         : "border-transparent bg-background text-foreground hover:bg-accent"
@@ -371,7 +373,7 @@ export function BookChapterModal({
                 <button
                   type="button"
                   onClick={() => goToChapterStart(selectedBook, selectedChapter)}
-                  className="focus-carbon mb-2 flex w-full items-center justify-center bg-background px-2 py-2 text-xs font-medium text-foreground hover:bg-accent"
+                  className="focus-carbon mb-2 flex w-full items-center justify-center rounded-full bg-background px-2 py-2 text-xs font-medium text-foreground hover:bg-accent"
                 >
                   Start of chapter
                 </button>
@@ -385,7 +387,7 @@ export function BookChapterModal({
                         key={n}
                         type="button"
                         onClick={() => goToVerse(n)}
-                        className="focus-carbon flex h-9 items-center justify-center bg-background text-sm font-medium text-foreground hover:bg-accent"
+                        className="focus-carbon flex h-9 items-center justify-center rounded-full bg-background text-sm font-medium text-foreground hover:bg-accent"
                       >
                         {n}
                       </button>

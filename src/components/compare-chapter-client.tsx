@@ -11,7 +11,17 @@ import { LANGUAGE_LABELS, LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/
 import { useChapter } from "@/lib/use-chapter";
 import { useChapterNavigation } from "@/lib/use-chapter-nav";
 import { useTranslations } from "@/lib/use-translations";
-import { getFontSize, getPreferredTranslation, saveReadingPosition } from "@/lib/local-store";
+import {
+  getFontSize,
+  getLetterSpacing,
+  getLineSpacing,
+  getPreferredTranslation,
+  getVerseView,
+  saveReadingPosition,
+  type LetterSpacing,
+  type LineSpacing,
+  type VerseViewMode,
+} from "@/lib/local-store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function CompareChapterClient({
@@ -27,24 +37,33 @@ export function CompareChapterClient({
   const [left, setLeft] = useState<TranslationId>("HSAB");
   const [right, setRight] = useState<TranslationId>("HSAB");
   const [fontSize, setFontSizeState] = useState(17);
+  const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
+  const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
+  const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
   const [pickerOpen, setPickerOpen] = useState(false);
   const leftTextRef = useRef<ChapterTextHandle>(null);
   const rightTextRef = useRef<ChapterTextHandle>(null);
   const isMobile = useIsMobile();
   const { byId } = useTranslations();
 
+  // Compare has no font-settings UI of its own — it just mirrors whatever
+  // text size, line/letter spacing, and layout are set on the single Read
+  // view (or Settings), read once on mount.
   useEffect(() => {
     setFontSizeState(Math.max(15, getFontSize() - 1));
+    setViewModeState(getVerseView());
+    setLineSpacingState(getLineSpacing());
+    setLetterSpacingState(getLetterSpacing());
   }, []);
 
-  // Default the right column to whatever version is currently selected on
+  // Default the left column to whatever version is currently selected on
   // the single reading view, so switching into Compare carries it over
   // instead of always starting from HSAB. Read on mount (not as the
   // `useState` initializer) to match the server-rendered default and avoid
   // a hydration mismatch — same pattern read-chapter-client.tsx uses for
   // its own translation state.
   useEffect(() => {
-    setRight(getPreferredTranslation() as TranslationId);
+    setLeft(getPreferredTranslation() as TranslationId);
   }, []);
 
   // Two narrower columns need a smaller size to keep from wrapping every word.
@@ -96,7 +115,7 @@ export function CompareChapterClient({
           onClick={() => setPickerOpen(true)}
           aria-label="Change book or chapter"
           title="Change book or chapter"
-          className="focus-carbon group flex h-8 items-center gap-2.5 border border-border px-3 hover:bg-accent"
+          className="focus-carbon group flex h-8 items-center gap-2.5 rounded-full border border-border px-3 hover:bg-accent"
         >
           <h1 className="sr-only">
             {bookName(book, leftLanguage)} {chapter}
@@ -110,7 +129,7 @@ export function CompareChapterClient({
           <span aria-hidden="true" className="h-4 w-px bg-border" />
           <span
             aria-hidden="true"
-            className="font-serif text-base leading-none font-semibold tracking-tight text-foreground"
+            className="text-base leading-none font-semibold tracking-tight text-foreground"
           >
             {chapter}
           </span>
@@ -136,6 +155,9 @@ export function CompareChapterClient({
           onChange={setLeft}
           query={leftQuery}
           fontSize={effectiveFontSize}
+          viewMode={viewMode}
+          lineSpacing={lineSpacing}
+          letterSpacing={letterSpacing}
         />
         <ComparePane
           ref={rightTextRef}
@@ -144,6 +166,9 @@ export function CompareChapterClient({
           onChange={setRight}
           query={rightQuery}
           fontSize={effectiveFontSize}
+          viewMode={viewMode}
+          lineSpacing={lineSpacing}
+          letterSpacing={letterSpacing}
         />
       </div>
 
@@ -153,7 +178,7 @@ export function CompareChapterClient({
             href={`/compare/${prev.book}/${prev.chapter}`}
             aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, leftLanguage) : ""} ${prev.chapter}`}
             title={`${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, leftLanguage) : ""} ${prev.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center border border-border text-foreground hover:bg-accent"
+            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
@@ -163,7 +188,7 @@ export function CompareChapterClient({
             href={`/compare/${next.book}/${next.chapter}`}
             aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, leftLanguage) : ""} ${next.chapter}`}
             title={`${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, leftLanguage) : ""} ${next.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center border border-border text-foreground hover:bg-accent"
+            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -179,10 +204,13 @@ interface ComparePaneProps {
   onChange: (id: TranslationId) => void;
   query: ReturnType<typeof useChapter>;
   fontSize: number;
+  viewMode: VerseViewMode;
+  lineSpacing: LineSpacing;
+  letterSpacing: LetterSpacing;
 }
 
 const ComparePane = forwardRef<ChapterTextHandle, ComparePaneProps>(function ComparePane(
-  { translation, language, onChange, query, fontSize },
+  { translation, language, onChange, query, fontSize, viewMode, lineSpacing, letterSpacing },
   ref,
 ) {
   return (
@@ -202,7 +230,17 @@ const ComparePane = forwardRef<ChapterTextHandle, ComparePaneProps>(function Com
             Couldn&apos;t load this translation. {(query.error as Error).message}
           </p>
         )}
-        {query.data && <ChapterText ref={ref} data={query.data} fontSize={fontSize} />}
+        {query.data && (
+          <ChapterText
+            ref={ref}
+            data={query.data}
+            fontSize={fontSize}
+            viewMode={viewMode}
+            lineSpacing={lineSpacing}
+            letterSpacing={letterSpacing}
+            interactive={false}
+          />
+        )}
       </div>
     </div>
   );

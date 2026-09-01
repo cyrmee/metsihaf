@@ -5,23 +5,24 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system: "Ink & Rubric" — drawn from Ethiopian illuminated
- * manuscripts, where scribes wrote body text in black ink and chapter
- * headings in a colored rubric ink. The app keeps that language:
- * sharp-cornered "manuscript page" surfaces everywhere (--radius stays 0)
- * on a plain white page, with the one floating pill nav standing apart as
- * a rounded object above it. The active nav item — and every accent in the
- * app — picks up the reader's chosen rubric color (Settings → Theme color).
+ * Design system: "Interlace" — drawn from the knotted, curling borders of
+ * Ethiopian illuminated manuscripts and processional crosses, where a
+ * single continuous line loops back on itself with no sharp break. Every
+ * surface in the app is soft and rounded — frosted "vellum glass" panels
+ * (bg-card/10, backdrop-blur) that curve like a loop of interlace, with
+ * the floating nav and small controls pulled all the way to full pills.
+ * The active nav item — and every accent in the app — picks up the
+ * reader's chosen rubric color (Settings → Theme color).
  */
 
 @theme inline {
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
+  --radius-4xl: 2.5rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -67,11 +68,11 @@
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Source Serif 4", "Noto Serif Ethiopic", ui-serif, Georgia, serif;
   --font-ethiopic: "Noto Serif Ethiopic", "Source Serif 4", serif;
-  --font-display: "Cormorant", "Source Serif 4", Georgia, serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0px;
+  --radius: 1.25rem;
   /* Floating pill nav footprint on mobile (1rem offset + ~3rem pill) plus a clear gap above it. */
   --nav-pill-clearance: 5.5rem;
   --top-bar-h: 48px;
@@ -127,78 +128,30 @@
 }
 
 /*
- * Theme color — the reader's chosen rubric ink (Settings → Theme color).
- * Swaps the primary/ring/sidebar accent only; page neutrals stay fixed.
+ * Rubric red is the app's one accent — the ink a scribe used to flag a
+ * heading in a manuscript. No longer user-selectable (see Settings).
  */
-:root[data-accent="orange"] {
-  --primary: oklch(0.58 0.16 55);
-  --ring: oklch(0.58 0.16 55);
-  --sidebar-primary: oklch(0.58 0.16 55);
-  --sidebar-ring: oklch(0.58 0.16 55);
-}
-:root[data-accent="yellow"] {
-  --primary: oklch(0.62 0.13 85);
-  --ring: oklch(0.62 0.13 85);
-  --sidebar-primary: oklch(0.62 0.13 85);
-  --sidebar-ring: oklch(0.62 0.13 85);
-}
-:root[data-accent="green"] {
-  --primary: oklch(0.45 0.09 145);
-  --ring: oklch(0.45 0.09 145);
-  --sidebar-primary: oklch(0.45 0.09 145);
-  --sidebar-ring: oklch(0.45 0.09 145);
-}
-:root[data-accent="teal"] {
-  --primary: oklch(0.5 0.09 195);
-  --ring: oklch(0.5 0.09 195);
-  --sidebar-primary: oklch(0.5 0.09 195);
-  --sidebar-ring: oklch(0.5 0.09 195);
-}
-:root[data-accent="blue"] {
-  --primary: oklch(0.48 0.13 245);
-  --ring: oklch(0.48 0.13 245);
-  --sidebar-primary: oklch(0.48 0.13 245);
-  --sidebar-ring: oklch(0.48 0.13 245);
-}
-:root[data-accent="purple"] {
-  --primary: oklch(0.5 0.12 305);
-  --ring: oklch(0.5 0.12 305);
-  --sidebar-primary: oklch(0.5 0.12 305);
-  --sidebar-ring: oklch(0.5 0.12 305);
-}
-:root[data-accent="pink"] {
-  --primary: oklch(0.55 0.16 340);
-  --ring: oklch(0.55 0.16 340);
-  --sidebar-primary: oklch(0.55 0.16 340);
-  --sidebar-ring: oklch(0.55 0.16 340);
-}
-:root[data-accent="brown"] {
-  --primary: oklch(0.42 0.07 50);
-  --ring: oklch(0.42 0.07 50);
-  --sidebar-primary: oklch(0.42 0.07 50);
-  --sidebar-ring: oklch(0.42 0.07 50);
-}
 
 .dark {
-  /* Manuscript Night — ink-navy, not neutral gray */
-  --background: oklch(0.17 0.02 260);
+  /* AMOLED black — true neutral black background, so OLED screens turn those pixels fully off. */
+  --background: oklch(0 0 0);
   --foreground: oklch(0.95 0.01 75);
-  --card: oklch(0.225 0.02 260);
+  --card: oklch(0.05 0 0);
   --card-foreground: oklch(0.95 0.01 75);
-  --popover: oklch(0.225 0.02 260);
+  --popover: oklch(0.05 0 0);
   --popover-foreground: oklch(0.95 0.01 75);
   --primary: oklch(0.64 0.18 29);
   --primary-foreground: oklch(0.15 0.01 40);
-  --secondary: oklch(0.3 0.02 260);
+  --secondary: oklch(0.14 0 0);
   --secondary-foreground: oklch(0.95 0.01 75);
-  --muted: oklch(0.3 0.02 260);
+  --muted: oklch(0.14 0 0);
   --muted-foreground: oklch(0.68 0.02 70);
-  --accent: oklch(0.32 0.04 80);
+  --accent: oklch(0.19 0.02 80);
   --accent-foreground: oklch(0.92 0.02 80);
   --destructive: oklch(0.62 0.17 350);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.33 0.02 260);
-  --input: oklch(0.38 0.02 260);
+  --border: oklch(0.24 0 0);
+  --input: oklch(0.28 0 0);
   --ring: oklch(0.64 0.18 29);
   --highlight-yellow: oklch(0.82 0.19 92);
   --highlight-red: oklch(0.7 0.22 20);
@@ -214,63 +167,14 @@
   --chart-3: oklch(0.83 0.15 90);
   --chart-4: oklch(0.62 0.13 250);
   --chart-5: oklch(0.75 0.13 80);
-  --sidebar: oklch(0.225 0.02 260);
+  --sidebar: oklch(0.05 0 0);
   --sidebar-foreground: oklch(0.95 0.01 75);
   --sidebar-primary: oklch(0.64 0.18 29);
   --sidebar-primary-foreground: oklch(0.15 0.01 40);
-  --sidebar-accent: oklch(0.3 0.02 260);
+  --sidebar-accent: oklch(0.14 0 0);
   --sidebar-accent-foreground: oklch(0.95 0.01 75);
-  --sidebar-border: oklch(0.33 0.02 260);
+  --sidebar-border: oklch(0.24 0 0);
   --sidebar-ring: oklch(0.64 0.18 29);
-}
-
-.dark[data-accent="orange"] {
-  --primary: oklch(0.72 0.15 55);
-  --ring: oklch(0.72 0.15 55);
-  --sidebar-primary: oklch(0.72 0.15 55);
-  --sidebar-ring: oklch(0.72 0.15 55);
-}
-.dark[data-accent="yellow"] {
-  --primary: oklch(0.78 0.12 85);
-  --ring: oklch(0.78 0.12 85);
-  --sidebar-primary: oklch(0.78 0.12 85);
-  --sidebar-ring: oklch(0.78 0.12 85);
-}
-.dark[data-accent="green"] {
-  --primary: oklch(0.68 0.1 145);
-  --ring: oklch(0.68 0.1 145);
-  --sidebar-primary: oklch(0.68 0.1 145);
-  --sidebar-ring: oklch(0.68 0.1 145);
-}
-.dark[data-accent="teal"] {
-  --primary: oklch(0.68 0.09 195);
-  --ring: oklch(0.68 0.09 195);
-  --sidebar-primary: oklch(0.68 0.09 195);
-  --sidebar-ring: oklch(0.68 0.09 195);
-}
-.dark[data-accent="blue"] {
-  --primary: oklch(0.68 0.13 245);
-  --ring: oklch(0.68 0.13 245);
-  --sidebar-primary: oklch(0.68 0.13 245);
-  --sidebar-ring: oklch(0.68 0.13 245);
-}
-.dark[data-accent="purple"] {
-  --primary: oklch(0.68 0.12 305);
-  --ring: oklch(0.68 0.12 305);
-  --sidebar-primary: oklch(0.68 0.12 305);
-  --sidebar-ring: oklch(0.68 0.12 305);
-}
-.dark[data-accent="pink"] {
-  --primary: oklch(0.72 0.14 340);
-  --ring: oklch(0.72 0.14 340);
-  --sidebar-primary: oklch(0.72 0.14 340);
-  --sidebar-ring: oklch(0.72 0.14 340);
-}
-.dark[data-accent="brown"] {
-  --primary: oklch(0.58 0.07 50);
-  --ring: oklch(0.58 0.07 50);
-  --sidebar-primary: oklch(0.58 0.07 50);
-  --sidebar-ring: oklch(0.58 0.07 50);
 }
 
 @layer base {

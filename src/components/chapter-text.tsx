@@ -15,14 +15,22 @@ import { BOOK_BY_ID, bookName, type BibleBook } from "@/data/books";
 import { CrossRefsModal } from "@/components/cross-refs-modal";
 import { FootnotesModal } from "@/components/footnotes-modal";
 import {
+  AMHARIC_FONT_STACKS,
+  ENGLISH_FONT_STACKS,
+  getAmharicFont,
+  getEnglishFont,
   getHighlight,
   getNote,
+  highlightRef,
   isBookmarked,
   LETTER_SPACING_VALUES,
   LINE_SPACING_VALUES,
+  onStoreChange,
   setHighlight,
   setNote,
   toggleBookmark,
+  type AmharicFont,
+  type EnglishFont,
   type HighlightColor,
   type LetterSpacing,
   type LineSpacing,
@@ -142,10 +150,18 @@ function groupByHeading(verses: ChapterData["verses"]): VerseGroup[] {
 }
 
 /** A section heading, e.g. "Giving to the Needy" — only present for translations whose source marks them (currently BSB). */
-function SectionHeading({ heading, subheading }: { heading: string; subheading?: string }) {
+function SectionHeading({
+  heading,
+  subheading,
+  isFirst,
+}: {
+  heading: string;
+  subheading?: string;
+  isFirst?: boolean;
+}) {
   return (
-    <div className="mt-8 mb-2 px-2 first:mt-0">
-      <h2 className="font-display text-2xl font-bold italic text-primary">{heading}</h2>
+    <div className={`mb-2 px-2 ${isFirst ? "mt-0" : "mt-8"}`}>
+      <h2 className="text-2xl font-bold italic text-foreground">{heading}</h2>
       {subheading && (
         <p className="mt-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {subheading}
@@ -186,9 +202,23 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [openRefsVerse, setOpenRefsVerse] = useState<number | null>(null);
   const [openNotesVerse, setOpenNotesVerse] = useState<number | null>(null);
+  const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
+  const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
   const storeVersion = useStoreVersion();
   void storeVersion; // re-render on store changes
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Read the saved font choice only after mount (matching the SSR-safe default
+  // above) so a returning visitor's non-default pick doesn't cause a hydration
+  // mismatch, and stay in sync if it's changed on the Settings page.
+  useEffect(() => {
+    const apply = () => {
+      setEnglishFontState(getEnglishFont());
+      setAmharicFontState(getAmharicFont());
+    };
+    apply();
+    return onStoreChange(apply);
+  }, []);
 
   const flashVerse = useCallback((verse: number) => {
     const el = containerRef.current?.querySelector<HTMLElement>(`#v${verse}`);
@@ -220,6 +250,9 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
   };
   const isAmharic = translation.language === "am";
   const book = BOOK_BY_ID[data.book];
+  const fontFamily = isAmharic
+    ? AMHARIC_FONT_STACKS[amharicFont]
+    : ENGLISH_FONT_STACKS[englishFont];
 
   const toggleVerse = (verse: number) => {
     if (!interactive) return;
@@ -233,7 +266,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
 
   const verseClass = (verse: number, isSelected: boolean) => {
     const highlight = interactive
-      ? getHighlight(`${data.book}.${data.chapter}.${verse}`)
+      ? getHighlight(highlightRef(data.translation, `${data.book}.${data.chapter}.${verse}`))
       : undefined;
     return [
       interactive ? "cursor-pointer" : "",
@@ -302,8 +335,14 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           fontSize: `${fontSize}px`,
           lineHeight: LINE_SPACING_VALUES[lineSpacing],
           letterSpacing: LETTER_SPACING_VALUES[letterSpacing],
+          fontFamily,
         }}
       >
+        {book && (
+          <h2 className="mb-6 px-2 text-2xl font-bold text-foreground">
+            {bookName(book, translation.language)} {data.chapter}
+          </h2>
+        )}
         {viewMode === "paragraph"
           ? groupByHeading(data.verses).map((group, gi) => (
               <div key={gi}>
@@ -311,6 +350,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                   <SectionHeading
                     heading={group.heading}
                     {...(group.subheading ? { subheading: group.subheading } : {})}
+                    isFirst={gi === 0}
                   />
                 )}
                 <p className="px-2 py-1">
@@ -325,7 +365,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                         className={`box-decoration-clone mr-2 px-0.5 py-1 ${verseClass(v.verse, isSelected)}`}
                       >
                         {extraAnchors(v)}
-                        <sup className="mr-1 select-none text-[0.65em] font-semibold text-primary">
+                        <sup className="mr-1 select-none text-[0.65em] font-semibold text-muted-foreground">
                           {v.label ?? v.verse}
                         </sup>
                         {renderVerseText(v.text, v.redLetter, v.footnotes)} {marks(v.verse, ref)}
@@ -335,7 +375,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                 </p>
               </div>
             ))
-          : data.verses.map((v) => {
+          : data.verses.map((v, vi) => {
               const ref = `${data.book}.${data.chapter}.${v.verse}`;
               const isSelected = selected.has(v.verse);
               return (
@@ -344,6 +384,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                     <SectionHeading
                       heading={v.heading}
                       {...(v.subheading ? { subheading: v.subheading } : {})}
+                      isFirst={vi === 0}
                     />
                   )}
                   <p
@@ -352,7 +393,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                     className={`px-2 py-0.5 ${verseClass(v.verse, isSelected)}`}
                   >
                     {extraAnchors(v)}
-                    <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-primary">
+                    <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-muted-foreground">
                       {v.label ?? v.verse}
                     </sup>
                     <span>{renderVerseText(v.text, v.redLetter, v.footnotes)}</span>
@@ -459,6 +500,7 @@ function SelectionToolbar({
     .filter((v) => selected.has(v.verse))
     .sort((a, b) => a.verse - b.verse);
   const refs = (n: number) => `${bookId}.${chapter}.${n}`;
+  const hlRefs = (n: number) => highlightRef(translation.id, refs(n));
   const single = selectedList.length === 1 ? selectedList[0] : null;
 
   useEffect(() => {
@@ -536,17 +578,17 @@ function SelectionToolbar({
   };
 
   const applyHighlight = (color: HighlightColor) => {
-    const allMatch = selectedList.every((v) => getHighlight(refs(v.verse))?.color === color);
-    selectedList.forEach((v) => setHighlight(refs(v.verse), allMatch ? null : color));
+    const allMatch = selectedList.every((v) => getHighlight(hlRefs(v.verse))?.color === color);
+    selectedList.forEach((v) => setHighlight(hlRefs(v.verse), allMatch ? null : color));
     onClear();
   };
 
   const clearHighlights = () => {
-    selectedList.forEach((v) => setHighlight(refs(v.verse), null));
+    selectedList.forEach((v) => setHighlight(hlRefs(v.verse), null));
     onClear();
   };
 
-  const anyHighlighted = selectedList.some((v) => getHighlight(refs(v.verse)));
+  const anyHighlighted = selectedList.some((v) => getHighlight(hlRefs(v.verse)));
 
   return (
     <>
@@ -556,9 +598,9 @@ function SelectionToolbar({
           "bottom-[calc(var(--nav-pill-clearance)+env(safe-area-inset-bottom))] md:bottom-6 md:px-4"
         }
       >
-        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl border border-border bg-card pointer-events-auto shadow-[0_16px_48px_-16px_rgba(0,0,0,0.5)] duration-200">
+        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-3xl border border-border/50 bg-card/10 pointer-events-auto shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md duration-200">
           {/* Rubric tab — echoes the left-bar mark on a selected verse in the text above. */}
-          <div className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" />
+          <div className="absolute inset-y-0 left-0 w-1 rounded-l-3xl bg-primary" aria-hidden="true" />
 
           {panel === "note" && selectedList.length > 0 && (
             <div className="py-2.5 pr-3 pl-4">
@@ -577,7 +619,7 @@ function SelectionToolbar({
                 onChange={(e) => setNoteDraft(e.target.value)}
                 rows={2}
                 autoFocus
-                className="focus-carbon w-full border border-input bg-background p-2 text-sm text-foreground"
+                className="focus-carbon w-full rounded-2xl border border-input bg-background p-2 text-sm text-foreground"
                 placeholder="Write your note…"
               />
               <div className="mt-1.5 flex gap-2">
@@ -588,14 +630,14 @@ function SelectionToolbar({
                     selectedList.forEach((v) => setNote(refs(v.verse), text));
                     setPanel(null);
                   }}
-                  className="focus-carbon bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  className="focus-carbon rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Save note
                 </button>
                 <button
                   type="button"
                   onClick={() => setPanel(null)}
-                  className="focus-carbon border border-border px-3 py-1 text-xs text-foreground hover:bg-accent"
+                  className="focus-carbon rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-accent"
                 >
                   Cancel
                 </button>
@@ -612,7 +654,7 @@ function SelectionToolbar({
                 onClick={copyVerses}
                 aria-label="Copy verse text"
                 title="Copy"
-                className="focus-carbon flex h-8 w-8 items-center justify-center border border-border text-foreground hover:bg-accent"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
               >
                 {copied ? (
                   <Check className="h-3.5 w-3.5 text-primary" />
@@ -626,7 +668,7 @@ function SelectionToolbar({
                 onClick={shareVerses}
                 aria-label="Share verse link"
                 title="Share"
-                className="focus-carbon flex h-8 w-8 items-center justify-center border border-border text-foreground hover:bg-accent"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
               >
                 {linkCopied ? (
                   <Check className="h-3.5 w-3.5 text-primary" />
@@ -640,7 +682,7 @@ function SelectionToolbar({
                 onClick={toggleBookmarks}
                 aria-label={allBookmarked ? "Remove bookmark" : "Bookmark"}
                 title="Bookmark"
-                className={`focus-carbon flex h-8 w-8 items-center justify-center border ${
+                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-full border ${
                   allBookmarked
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-foreground hover:bg-accent"
@@ -656,7 +698,7 @@ function SelectionToolbar({
                 onClick={() => setPanel(panel === "note" ? null : "note")}
                 aria-label="Add or edit note"
                 title="Note"
-                className={`focus-carbon flex h-8 w-8 items-center justify-center border disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-full border disabled:cursor-not-allowed disabled:opacity-40 ${
                   panel === "note"
                     ? "border-primary bg-accent text-primary"
                     : "border-border text-foreground hover:bg-accent"
@@ -671,7 +713,7 @@ function SelectionToolbar({
                 onClick={() => setRefsOpen(true)}
                 aria-label="Cross-references"
                 title="Cross-references"
-                className="focus-carbon flex h-8 w-8 items-center justify-center border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Link2 className="h-3.5 w-3.5" />
               </button>
@@ -682,7 +724,7 @@ function SelectionToolbar({
                 onClick={() => setNotesOpen(true)}
                 aria-label="Footnotes"
                 title="Footnotes"
-                className="focus-carbon flex h-8 w-8 items-center justify-center border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Asterisk className="h-3.5 w-3.5" />
               </button>
@@ -694,7 +736,7 @@ function SelectionToolbar({
               >
                 {HIGHLIGHT_SWATCHES.map((s) => {
                   const active = selectedList.every(
-                    (v) => getHighlight(refs(v.verse))?.color === s.color,
+                    (v) => getHighlight(hlRefs(v.verse))?.color === s.color,
                   );
                   return (
                     <button
@@ -703,7 +745,7 @@ function SelectionToolbar({
                       title={s.label}
                       aria-label={`Highlight ${s.label}`}
                       onClick={() => applyHighlight(s.color)}
-                      className={`focus-carbon h-6 w-6 border ${s.className} ${
+                      className={`focus-carbon h-6 w-6 rounded-full border ${s.className} ${
                         active ? "ring-2 ring-primary" : "border-border"
                       }`}
                     />

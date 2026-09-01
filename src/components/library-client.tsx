@@ -8,6 +8,7 @@ import {
   getBookmarks,
   getHighlights,
   getNotes,
+  parseHighlightRef,
   setHighlight,
   setNote,
   toggleBookmark,
@@ -58,7 +59,7 @@ export function LibraryClient() {
               role="tab"
               aria-selected={active}
               onClick={() => setTab(t.id)}
-              className={`focus-carbon flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors ${
+              className={`focus-carbon flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -85,11 +86,15 @@ export function LibraryClient() {
         {tab === "highlights" && (
           <EntryList
             empty="No highlights yet. Tap a verse and pick a color."
-            items={highlights.map((h) => ({
-              ref: h.ref,
-              badge: h.color,
-              onRemove: () => setHighlight(h.ref, null),
-            }))}
+            items={highlights.map((h) => {
+              const { translation, ref } = parseHighlightRef(h.ref);
+              return {
+                ref: h.ref,
+                displayRef: ref,
+                badge: translation ? `${h.color} · ${translation}` : h.color,
+                onRemove: () => setHighlight(h.ref, null),
+              };
+            })}
           />
         )}
         {tab === "notes" && (
@@ -110,6 +115,8 @@ export function LibraryClient() {
 
 interface EntryItem {
   ref: string;
+  /** Plain "BOOK.CHAPTER.VERSE" ref to link/format from, when `ref` itself is a composite key (highlights). Defaults to `ref`. */
+  displayRef?: string;
   body?: string;
   badge?: string;
   onRemove: () => void;
@@ -123,7 +130,7 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
 
   if (items.length === 0) {
     return (
-      <div className="border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-3xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
         {empty}
       </div>
     );
@@ -142,16 +149,20 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
   return (
     <ul className="flex flex-col gap-1.5">
       {items.map((item) => {
-        const parts = item.ref.split(".");
+        const displayRef = item.displayRef ?? item.ref;
+        const parts = displayRef.split(".");
         const isEditing = editingRef === item.ref;
         return (
-          <li key={item.ref} className="flex items-start justify-between gap-3 bg-card px-3 py-3">
+          <li
+            key={item.ref}
+            className="flex items-start justify-between gap-3 rounded-2xl bg-card px-3 py-3"
+          >
             <div className="min-w-0 flex-1">
               <Link
                 href={`/read/${parts[0] ?? "GEN"}/${parts[1] ?? "1"}#v${parts[2]}`}
                 className="focus-carbon text-sm font-semibold text-primary hover:underline"
               >
-                {formatRef(item.ref)}
+                {formatRef(displayRef)}
               </Link>
               {item.badge && (
                 <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
@@ -165,20 +176,20 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
                     onChange={(e) => setDraft(e.target.value)}
                     rows={2}
                     autoFocus
-                    className="focus-carbon w-full border border-input bg-background p-2 text-sm text-foreground"
+                    className="focus-carbon w-full rounded-2xl border border-input bg-background p-2 text-sm text-foreground"
                   />
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => saveEdit(item)}
-                      className="focus-carbon flex items-center gap-1 bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                      className="focus-carbon flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                     >
                       <Check className="h-3 w-3" /> Save
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingRef(null)}
-                      className="focus-carbon flex items-center gap-1 border border-border px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+                      className="focus-carbon flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:bg-accent"
                     >
                       <X className="h-3 w-3" /> Cancel
                     </button>
@@ -195,7 +206,7 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
                 <button
                   type="button"
                   onClick={() => startEdit(item)}
-                  aria-label={`Edit note on ${formatRef(item.ref)}`}
+                  aria-label={`Edit note on ${formatRef(displayRef)}`}
                   className="focus-carbon text-muted-foreground hover:text-foreground"
                 >
                   <Pencil className="h-4 w-4" />
@@ -204,7 +215,7 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
               <button
                 type="button"
                 onClick={item.onRemove}
-                aria-label={`Remove ${formatRef(item.ref)}`}
+                aria-label={`Remove ${formatRef(displayRef)}`}
                 className="focus-carbon text-muted-foreground hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />

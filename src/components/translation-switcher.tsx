@@ -2,8 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { LANGUAGE_LABELS, type LanguageId, type TranslationId } from "@/lib/bible";
+import {
+  LANGUAGE_LABELS,
+  TRANSLATION_NAMES,
+  type LanguageId,
+  type TranslationId,
+} from "@/lib/bible";
 import { useTranslations } from "@/lib/use-translations";
+import { InlineSelect } from "@/components/inline-select";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +49,7 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        className={`focus-carbon flex items-center justify-center gap-1.5 border border-border bg-card font-medium text-foreground transition-colors hover:bg-accent ${
+        className={`focus-carbon flex items-center justify-center gap-1.5 rounded-full border border-border bg-card font-medium text-foreground transition-colors hover:bg-accent ${
           size === "sm" ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm"
         }`}
       >
@@ -57,23 +63,13 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
         </DialogHeader>
 
         <div className="flex flex-col items-center px-4 pb-3">
-          <label htmlFor="translation-language" className="sr-only">
-            Language
-          </label>
-          <div className="relative w-full max-w-[13rem]">
-            <select
-              id="translation-language"
+          <div className="w-full max-w-[13rem]">
+            <InlineSelect
+              ariaLabel="Language"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="focus-carbon w-full appearance-none bg-card px-3 py-2.5 text-center text-sm font-medium text-foreground"
-            >
-              {languages.map((l) => (
-                <option key={l} value={l}>
-                  {LANGUAGE_LABELS[l] ?? l}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              onChange={(l) => setLanguage(l as LanguageId)}
+              options={languages.map((l) => ({ id: l, label: LANGUAGE_LABELS[l] ?? l }))}
+            />
           </div>
         </div>
 
@@ -89,7 +85,7 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
                   onChange(t.id);
                   setOpen(false);
                 }}
-                className={`focus-carbon flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors ${
+                className={`focus-carbon flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-left transition-colors ${
                   active ? "bg-accent" : "hover:bg-accent/60"
                 }`}
               >
@@ -98,6 +94,12 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
                     className={`block text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}
                   >
                     {t.id}
+                    {TRANSLATION_NAMES[t.id] && (
+                      <span className="font-normal text-muted-foreground">
+                        {" "}
+                        — {TRANSLATION_NAMES[t.id]}
+                      </span>
+                    )}
                   </span>
                   <span className="block text-xs text-muted-foreground">
                     {LANGUAGE_LABELS[t.language] ?? t.language}

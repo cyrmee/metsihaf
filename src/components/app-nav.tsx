@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { BookOpen, Columns2, Search, LibraryBig, Settings } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getAccentTheme, getDarkMode, getReadingPosition, onStoreChange } from "@/lib/local-store";
+import { getDarkMode, getReadingPosition, onStoreChange } from "@/lib/local-store";
 import { useSession } from "@/lib/use-session";
 
 /** Matches the "/read/BOOK/CHAPTER" or "/compare/BOOK/CHAPTER" a book/chapter page is currently on. */
@@ -35,10 +35,11 @@ function useBookChapterSuffix(pathname: string): string {
 }
 
 /**
- * The one rounded, floating element in an otherwise sharp-cornered
- * "manuscript page" design language — icon-only at every breakpoint,
- * bottom-center on mobile and top-center on desktop. The active
- * destination is marked in rubric red, the way a scribe flagged a heading.
+ * A floating glass pill — icon-only at every breakpoint, bottom-center on
+ * mobile and top-center on desktop, curved all the way to a full loop to
+ * match the "Interlace" language used everywhere else in the app. The
+ * active destination is marked in rubric red, the way a scribe flagged a
+ * heading.
  */
 export function AppNav() {
   const pathname = usePathname();
@@ -61,7 +62,6 @@ export function AppNav() {
   useEffect(() => {
     const apply = () => {
       document.documentElement.classList.toggle("dark", getDarkMode());
-      document.documentElement.setAttribute("data-accent", getAccentTheme());
     };
     apply();
     return onStoreChange(apply);
@@ -71,8 +71,8 @@ export function AppNav() {
     <nav
       aria-label="Primary"
       className={cn(
-        "fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5",
-        "rounded-full border border-border/70 bg-card/85 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-xl",
+        "fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full",
+        "border border-border/50 bg-card/10 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md",
         "px-2.5 py-2.5",
         "bottom-[calc(1rem+env(safe-area-inset-bottom))] md:top-4 md:bottom-auto",
       )}

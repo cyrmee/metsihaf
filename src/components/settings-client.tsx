@@ -2,29 +2,35 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Moon, Pilcrow, Rows3, Sun, Trash2 } from "lucide-react";
+import { InlineSelect } from "@/components/inline-select";
 import { TranslationSwitcher } from "@/components/translation-switcher";
 import { AccountSection } from "@/components/account-section";
 import { LANGUAGE_LABELS, type TranslationId } from "@/lib/bible";
 import { useTranslations } from "@/lib/use-translations";
 import {
+  AMHARIC_FONT_STACKS,
   clearStudyData,
-  getAccentTheme,
+  ENGLISH_FONT_STACKS,
+  getAmharicFont,
   getDarkMode,
+  getEnglishFont,
   getFontSize,
   getLetterSpacing,
   getLineSpacing,
   getPreferredTranslation,
   getShowVerseSelector,
   getVerseView,
-  setAccentTheme,
+  setAmharicFont,
   setDarkMode,
+  setEnglishFont,
   setFontSize,
   setLetterSpacing,
   setLineSpacing,
   setPreferredTranslation,
   setShowVerseSelector,
   setVerseView,
-  type AccentTheme,
+  type AmharicFont,
+  type EnglishFont,
   type LetterSpacing,
   type LineSpacing,
   type VerseViewMode,
@@ -41,24 +47,24 @@ const LETTER_SPACINGS: { id: LetterSpacing; label: string }[] = [
   { id: "normal", label: "Normal" },
   { id: "wide", label: "Wide" },
 ];
-
-/** Preview swatch values — mirror the light-mode oklch values in globals.css. */
-const THEME_COLORS: { id: AccentTheme; label: string; swatch: string }[] = [
-  { id: "red", label: "Red", swatch: "oklch(0.47 0.17 29)" },
-  { id: "orange", label: "Orange", swatch: "oklch(0.58 0.16 55)" },
-  { id: "yellow", label: "Yellow", swatch: "oklch(0.62 0.13 85)" },
-  { id: "green", label: "Green", swatch: "oklch(0.45 0.09 145)" },
-  { id: "teal", label: "Teal", swatch: "oklch(0.5 0.09 195)" },
-  { id: "blue", label: "Blue", swatch: "oklch(0.48 0.13 245)" },
-  { id: "purple", label: "Purple", swatch: "oklch(0.5 0.12 305)" },
-  { id: "pink", label: "Pink", swatch: "oklch(0.55 0.16 340)" },
-  { id: "brown", label: "Brown", swatch: "oklch(0.42 0.07 50)" },
+const ENGLISH_FONTS: { id: EnglishFont; label: string }[] = [
+  { id: "sourceSerif", label: "Source Serif" },
+  { id: "literata", label: "Literata" },
+  { id: "merriweather", label: "Merriweather" },
+  { id: "lora", label: "Lora" },
+  { id: "crimsonPro", label: "Crimson Pro" },
+  { id: "plexSans", label: "Plex Sans" },
+];
+const AMHARIC_FONTS: { id: AmharicFont; label: string }[] = [
+  { id: "notoSerif", label: "Noto Serif" },
+  { id: "notoSans", label: "Noto Sans" },
+  { id: "abyssinica", label: "Abyssinica" },
 ];
 
-/** A bordered "manuscript page" panel — the grouping unit for the whole page. */
+/** A bordered, curved glass panel — the grouping unit for the whole page. */
 function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border border-border bg-card">
+    <section className="overflow-hidden rounded-3xl border border-border bg-card">
       <h2 className="border-b border-border px-4 py-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
         {title}
       </h2>
@@ -88,10 +94,10 @@ function SettingsRow({
   );
 }
 
-/** Sharp-cornered disclosure, styled to match the manuscript panels around it. */
+/** Rounded disclosure, styled to match the glass panels around it. */
 function LegalDetails({ summary, children }: { summary: string; children: ReactNode }) {
   return (
-    <details className="group border border-border">
+    <details className="group overflow-hidden rounded-2xl border border-border">
       <summary className="focus-carbon flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground marker:content-none">
         {summary}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -105,22 +111,24 @@ function LegalDetails({ summary, children }: { summary: string; children: ReactN
 
 export function SettingsClient() {
   const [dark, setDark] = useState(false);
-  const [accent, setAccentState] = useState<AccentTheme>("red");
   const [fontSize, setFontSizeState] = useState(18);
   const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
   const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
+  const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
+  const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
   const [translation, setTranslationState] = useState<TranslationId>("HSAB");
   const [showVerseSelector, setShowVerseSelectorState] = useState(false);
   const { byId } = useTranslations();
 
   useEffect(() => {
     setDark(getDarkMode());
-    setAccentState(getAccentTheme());
     setFontSizeState(getFontSize());
     setViewModeState(getVerseView());
     setLineSpacingState(getLineSpacing());
     setLetterSpacingState(getLetterSpacing());
+    setEnglishFontState(getEnglishFont());
+    setAmharicFontState(getAmharicFont());
     setTranslationState(getPreferredTranslation() as TranslationId);
     setShowVerseSelectorState(getShowVerseSelector());
   }, []);
@@ -129,12 +137,6 @@ export function SettingsClient() {
     setDark(on);
     setDarkMode(on);
     document.documentElement.classList.toggle("dark", on);
-  };
-
-  const changeAccent = (theme: AccentTheme) => {
-    setAccentState(theme);
-    setAccentTheme(theme);
-    document.documentElement.setAttribute("data-accent", theme);
   };
 
   const changeFontSize = (size: number) => {
@@ -160,6 +162,16 @@ export function SettingsClient() {
   const changeLetterSpacing = (spacing: LetterSpacing) => {
     setLetterSpacingState(spacing);
     setLetterSpacing(spacing);
+  };
+
+  const changeEnglishFont = (font: EnglishFont) => {
+    setEnglishFontState(font);
+    setEnglishFont(font);
+  };
+
+  const changeAmharicFont = (font: AmharicFont) => {
+    setAmharicFontState(font);
+    setAmharicFont(font);
   };
 
   const changeTranslation = (id: TranslationId) => {
@@ -197,50 +209,18 @@ export function SettingsClient() {
               role="switch"
               aria-checked={dark}
               onClick={() => changeDark(!dark)}
-              className={`focus-carbon flex h-8 w-14 shrink-0 items-center border px-1 transition-colors ${
+              className={`focus-carbon flex h-8 w-14 shrink-0 items-center rounded-full border px-1 transition-colors ${
                 dark ? "border-primary bg-primary" : "border-border bg-card"
               }`}
             >
               <span
-                className={`flex h-6 w-6 items-center justify-center bg-background text-foreground transition-transform ${
+                className={`flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background transition-transform ${
                   dark ? "translate-x-6" : "translate-x-0"
                 }`}
               >
                 {dark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
               </span>
             </button>
-          </SettingsRow>
-
-          <SettingsRow label="Theme color">
-            <div className="flex flex-wrap gap-3" role="group" aria-label="Theme color">
-              {THEME_COLORS.map((t) => {
-                const active = accent === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => changeAccent(t.id)}
-                    aria-pressed={active}
-                    aria-label={t.label}
-                    className="focus-carbon flex flex-col items-center gap-1.5"
-                  >
-                    <span
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
-                        active ? "border-foreground" : "border-transparent"
-                      }`}
-                    >
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-full"
-                        style={{ backgroundColor: t.swatch }}
-                      >
-                        {active && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
-                      </span>
-                    </span>
-                    <span className="text-xs text-muted-foreground">{t.label}</span>
-                  </button>
-                );
-              })}
-            </div>
           </SettingsRow>
         </SettingsGroup>
 
@@ -254,7 +234,7 @@ export function SettingsClient() {
                   onClick={() => changeFontSize(size)}
                   aria-label={`Text size ${size}`}
                   aria-pressed={fontSize === size}
-                  className={`focus-carbon flex h-11 w-11 items-center justify-center border font-serif ${
+                  className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-full border font-serif ${
                     fontSize === size
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-foreground hover:bg-accent"
@@ -267,6 +247,36 @@ export function SettingsClient() {
             </div>
           </SettingsRow>
 
+          <SettingsRow label="English font">
+            <InlineSelect
+              className="max-w-xs"
+              ariaLabel="English font"
+              value={englishFont}
+              onChange={(id) => changeEnglishFont(id as EnglishFont)}
+              triggerStyle={{ fontFamily: ENGLISH_FONT_STACKS[englishFont] }}
+              options={ENGLISH_FONTS.map((f) => ({
+                id: f.id,
+                label: f.label,
+                style: { fontFamily: ENGLISH_FONT_STACKS[f.id] },
+              }))}
+            />
+          </SettingsRow>
+
+          <SettingsRow label="Amharic font">
+            <InlineSelect
+              className="max-w-xs"
+              ariaLabel="Amharic font"
+              value={amharicFont}
+              onChange={(id) => changeAmharicFont(id as AmharicFont)}
+              triggerStyle={{ fontFamily: AMHARIC_FONT_STACKS[amharicFont] }}
+              options={AMHARIC_FONTS.map((f) => ({
+                id: f.id,
+                label: f.label,
+                style: { fontFamily: AMHARIC_FONT_STACKS[f.id] },
+              }))}
+            />
+          </SettingsRow>
+
           <SettingsRow label="Line spacing">
             <div className="flex items-center gap-1.5" role="group" aria-label="Line spacing">
               {LINE_SPACINGS.map((s) => (
@@ -275,7 +285,7 @@ export function SettingsClient() {
                   type="button"
                   onClick={() => changeLineSpacing(s.id)}
                   aria-pressed={lineSpacing === s.id}
-                  className={`focus-carbon flex h-11 w-24 items-center justify-center border text-sm font-medium ${
+                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-full border text-sm font-medium ${
                     lineSpacing === s.id
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-foreground hover:bg-accent"
@@ -295,7 +305,7 @@ export function SettingsClient() {
                   type="button"
                   onClick={() => changeLetterSpacing(s.id)}
                   aria-pressed={letterSpacing === s.id}
-                  className={`focus-carbon flex h-11 w-24 items-center justify-center border text-sm font-medium ${
+                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-full border text-sm font-medium ${
                     letterSpacing === s.id
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-foreground hover:bg-accent"
@@ -319,7 +329,7 @@ export function SettingsClient() {
                 aria-label="Verse per line"
                 aria-pressed={viewMode === "line"}
                 title="Verse per line"
-                className={`focus-carbon flex h-11 w-11 items-center justify-center border ${
+                className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-full border ${
                   viewMode === "line"
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-foreground hover:bg-accent"
@@ -333,7 +343,7 @@ export function SettingsClient() {
                 aria-label="Paragraph"
                 aria-pressed={viewMode === "paragraph"}
                 title="Paragraph"
-                className={`focus-carbon flex h-11 w-11 items-center justify-center border ${
+                className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-full border ${
                   viewMode === "paragraph"
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-foreground hover:bg-accent"
@@ -364,12 +374,12 @@ export function SettingsClient() {
               role="switch"
               aria-checked={showVerseSelector}
               onClick={() => changeShowVerseSelector(!showVerseSelector)}
-              className={`focus-carbon flex h-8 w-14 shrink-0 items-center border px-1 transition-colors ${
+              className={`focus-carbon flex h-8 w-14 shrink-0 items-center rounded-full border px-1 transition-colors ${
                 showVerseSelector ? "border-primary bg-primary" : "border-border bg-card"
               }`}
             >
               <span
-                className={`h-6 w-6 bg-background transition-transform ${
+                className={`h-6 w-6 rounded-full bg-foreground transition-transform ${
                   showVerseSelector ? "translate-x-6" : "translate-x-0"
                 }`}
               />
@@ -391,7 +401,7 @@ export function SettingsClient() {
             <button
               type="button"
               onClick={clearLocalData}
-              className="focus-carbon flex shrink-0 items-center gap-1.5 border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
+              className="focus-carbon flex shrink-0 items-center gap-1.5 rounded-full border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" /> Clear
             </button>

@@ -15,6 +15,28 @@ export type LineSpacing = "tight" | "normal" | "relaxed";
 
 export type LetterSpacing = "tight" | "normal" | "wide";
 
+export type EnglishFont =
+  "sourceSerif" | "literata" | "merriweather" | "lora" | "crimsonPro" | "plexSans";
+
+export type AmharicFont = "notoSerif" | "notoSans" | "abyssinica";
+
+/** English scripture-text font choices — a mix of literary and screen-optimized serifs, plus one clean sans-serif. */
+export const ENGLISH_FONT_STACKS: Record<EnglishFont, string> = {
+  sourceSerif: '"Source Serif 4", ui-serif, Georgia, serif',
+  literata: '"Literata", ui-serif, Georgia, serif',
+  merriweather: '"Merriweather", ui-serif, Georgia, serif',
+  lora: '"Lora", ui-serif, Georgia, serif',
+  crimsonPro: '"Crimson Pro", ui-serif, Georgia, serif',
+  plexSans: '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+};
+
+/** Amharic scripture-text font choices — a clean Ethiopic serif (default), a modern sans, and the traditional calligraphic style used in printed scripture. */
+export const AMHARIC_FONT_STACKS: Record<AmharicFont, string> = {
+  notoSerif: '"Noto Serif Ethiopic", serif',
+  notoSans: '"Noto Sans Ethiopic", sans-serif',
+  abyssinica: '"Abyssinica SIL", serif',
+};
+
 /** Actual CSS values for each line-spacing step, applied over the base scripture line-height. */
 export const LINE_SPACING_VALUES: Record<LineSpacing, number> = {
   tight: 1.5,
@@ -35,8 +57,28 @@ export interface Bookmark {
 }
 
 export interface Highlight {
+  /** A composite `"TRANSLATION:BOOK.CHAPTER.VERSE"` key — see {@link highlightRef}. */
   ref: string;
   color: HighlightColor;
+}
+
+/**
+ * Highlights are scoped per translation (unlike bookmarks and notes, which
+ * are about the passage itself): the same verse can be highlighted
+ * independently in each version you read it in. Build the composite key
+ * this way rather than storing `translation` as a separate field, so the
+ * existing `ref`-keyed storage (and its remote sync, which treats `ref` as
+ * an opaque string) needs no schema change.
+ */
+export function highlightRef(translation: string, ref: string): string {
+  return `${translation}:${ref}`;
+}
+
+/** Splits a highlight's composite key back into its translation and plain verse ref. */
+export function parseHighlightRef(key: string): { translation: string; ref: string } {
+  const i = key.indexOf(":");
+  if (i === -1) return { translation: "", ref: key };
+  return { translation: key.slice(0, i), ref: key.slice(i + 1) };
 }
 
 export interface Note {
@@ -64,6 +106,8 @@ const KEYS = {
   accentTheme: "bible.accentTheme",
   lineSpacing: "bible.lineSpacing",
   letterSpacing: "bible.letterSpacing",
+  englishFont: "bible.englishFont",
+  amharicFont: "bible.amharicFont",
   showVerseSelector: "bible.showVerseSelector",
   recentSearches: "bible.recentSearches",
 } as const;
@@ -249,6 +293,22 @@ export function getLetterSpacing(): LetterSpacing {
 
 export function setLetterSpacing(spacing: LetterSpacing) {
   write(KEYS.letterSpacing, spacing);
+}
+
+export function getEnglishFont(): EnglishFont {
+  return read<EnglishFont>(KEYS.englishFont, "sourceSerif");
+}
+
+export function setEnglishFont(font: EnglishFont) {
+  write(KEYS.englishFont, font);
+}
+
+export function getAmharicFont(): AmharicFont {
+  return read<AmharicFont>(KEYS.amharicFont, "notoSerif");
+}
+
+export function setAmharicFont(font: AmharicFont) {
+  write(KEYS.amharicFont, font);
 }
 
 // ---- Recent searches ----
