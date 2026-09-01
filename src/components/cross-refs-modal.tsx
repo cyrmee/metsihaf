@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { BOOK_BY_ID, formatRef } from "@/data/books";
-import { API_BASE } from "@/lib/api-base";
 
 async function getAmharicVerseTexts(refs: string[]): Promise<Record<string, string | null>> {
   if (refs.length === 0) return {};
   const params = new URLSearchParams({ refs: refs.join(",") });
-  const res = await fetch(`${API_BASE}/api/verse-text?${params.toString()}`);
+  const res = await fetch(`/api/verse-text?${params.toString()}`);
   if (!res.ok) return {};
   const body = (await res.json()) as { texts?: Record<string, string | null> };
   return body.texts ?? {};

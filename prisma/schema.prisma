@@ -1,0 +1,115 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum HighlightColor {
+  yellow
+  red
+  orange
+  brown
+  green
+  teal
+  blue
+  purple
+  pink
+}
+
+enum AccentTheme {
+  red
+  orange
+  yellow
+  green
+  teal
+  blue
+  purple
+  pink
+  brown
+}
+
+enum LineSpacing {
+  tight
+  normal
+  relaxed
+}
+
+enum LetterSpacing {
+  tight
+  normal
+  wide
+}
+
+enum VerseViewMode {
+  line
+  paragraph
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String?  @unique
+  authUid   String   @unique
+  createdAt DateTime @default(now())
+
+  bookmarks   Bookmark[]
+  highlights  Highlight[]
+  notes       Note[]
+  readingPos  ReadingPosition?
+  preferences Preference?
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  ref       String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ref])
+}
+
+model Highlight {
+  id     String         @id @default(uuid())
+  userId String
+  ref    String
+  color  HighlightColor
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ref])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  userId    String
+  ref       String
+  text      String
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ref])
+}
+
+model ReadingPosition {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  book        String
+  chapter     Int
+  translation String
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Preference {
+  id                String        @id @default(uuid())
+  userId            String        @unique
+  darkMode          Boolean       @default(false)
+  fontSize          Int           @default(18)
+  verseView         VerseViewMode @default(line)
+  accentTheme       AccentTheme   @default(red)
+  lineSpacing       LineSpacing   @default(normal)
+  letterSpacing     LetterSpacing @default(normal)
+  showVerseSelector Boolean       @default(false)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
