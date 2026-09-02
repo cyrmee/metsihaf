@@ -8,22 +8,34 @@ const SOURCE_LABELS: Record<string, string> = {
   "matthew-henry": "Matthew Henry Bible Commentary",
 };
 
-// Matthew Henry's commentary is structured as an outline (Roman-numeral
-// points, numbered points, parenthesized and bracketed sub-points), but the
-// source only sometimes marks a point's start with a newline — other times
-// (e.g. a short enumerated list) several points run together in one block of
-// text. This also splits before an inline marker like "1. " or "(2.) ", so
-// every point gets its own paragraph regardless of which way the source
-// happened to write it.
-const INLINE_MARKER =
-  /(?<=[,;.!?]\s)(?=(?:[IVXLCDM]{1,4}\.|\d{1,2}\.|\(\d{1,2}\.\)|\[\d{1,2}\.\])\s+[A-Z"'‘“])/;
+// Matthew Henry's commentary is structured as an outline (Roman-numeral,
+// lettered, numbered, parenthesized, and bracketed points), but the source
+// only sometimes marks a point's start with a newline — other times (e.g. a
+// short enumerated list) several points run together in one block of text.
+// This also splits before an inline marker like "1. " or "(2.) ", so every
+// point gets its own paragraph regardless of which way the source wrote it.
+const MARKER = "(?:[IVXLCDM]{1,4}\\.|[a-z]\\.|\\d{1,2}\\.|\\(\\d{1,2}\\.\\)|\\[\\d{1,2}\\.\\])";
+const INLINE_MARKER_SPLIT = new RegExp(`(?<=[,;.!?]\\s)(?=${MARKER}\\s+[A-Z"'‘“])`);
+const STARTS_WITH_MARKER = new RegExp(`^${MARKER}\\s`);
 
 function splitIntoParagraphs(text: string): string[] {
-  return text
+  const raw = text
     .split("\n")
-    .flatMap((block) => block.split(INLINE_MARKER))
+    .flatMap((block) => block.split(INLINE_MARKER_SPLIT))
     .map((p) => p.trim())
     .filter(Boolean);
+  // A `\n` in the source sometimes just breaks a line of quoted poetry
+  // rather than starting a new point — if what follows isn't itself a new
+  // outline marker, it's a sentence continuation, so fold it back in.
+  const paragraphs: string[] = [];
+  for (const p of raw) {
+    if (paragraphs.length > 0 && /^[a-z]/.test(p) && !STARTS_WITH_MARKER.test(p)) {
+      paragraphs[paragraphs.length - 1] += " " + p;
+    } else {
+      paragraphs.push(p);
+    }
+  }
+  return paragraphs;
 }
 
 interface StudyNoteModalProps {
