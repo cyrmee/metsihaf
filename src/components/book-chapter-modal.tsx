@@ -17,7 +17,6 @@ interface BookChapterModalProps {
   book: BibleBook;
   chapter: number;
   translation: TranslationId;
-  linkTo: "read" | "compare";
   open: boolean;
   onClose: () => void;
   /** Called instead of navigating when the picked chapter/verse is the one already on screen. */
@@ -33,7 +32,6 @@ export function BookChapterModal({
   book,
   chapter,
   translation,
-  linkTo,
   open,
   onClose,
   onJumpToVerse,
@@ -92,7 +90,7 @@ export function BookChapterModal({
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    router.push(`/${linkTo}/${b.id}/${n}`);
+    router.push(`/read/${b.id}/${n}`);
   };
 
   const selectBook = (b: BibleBook) => {
@@ -172,25 +170,31 @@ export function BookChapterModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div
+        className="animate-in fade-in-0 fixed inset-0 z-50 bg-black/50 duration-150"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150">
+        <div className="flex items-center justify-between border-b border-ink px-4 py-3">
           <button
             type="button"
             onClick={() => setMobileStep("books")}
-            className={`focus-carbon flex items-center gap-1 rounded-md py-1 pr-2 pl-1 text-sm font-medium text-foreground hover:bg-accent md:hidden ${
+            className={`focus-editorial flex items-center gap-1 py-1 pr-2 pl-1 text-sm text-ink hover:text-signal md:hidden ${
               mobileStep === "chapters" ? "" : "invisible"
             }`}
           >
             <ChevronLeft className="h-4 w-4" />
             {bookName(selectedBook, language)}
           </button>
-          <div className="hidden md:block" />
+          <span className="hidden font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase md:block">
+            Choose a passage
+          </span>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+            className="focus-editorial flex h-8 w-8 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -200,7 +204,7 @@ export function BookChapterModal({
           {/* Books */}
           <div
             ref={booksColRef}
-            className={`min-w-0 flex-1 flex-col overflow-y-auto bg-card md:flex md:flex-[4] ${
+            className={`min-w-0 flex-1 flex-col overflow-y-auto md:flex md:flex-[4] ${
               mobileStep === "books" ? "flex" : "hidden"
             }`}
             onKeyDown={(e) =>
@@ -212,13 +216,14 @@ export function BookChapterModal({
                 const books = BOOKS.filter((b) => b.testament === testament);
                 if (books.length === 0) return null;
                 return (
-                  <div key={testament} className="mb-6">
-                    <h3
-                      className={`font-display text-sm font-medium text-muted-foreground ${i === 0 ? "mb-2" : "mb-1.5"}`}
-                    >
-                      {testament === "OT" ? "Old Testament" : "New Testament"}
-                    </h3>
-                    <div className="flex flex-col gap-1">
+                  <div key={testament} className={i === 0 ? "mb-5" : ""}>
+                    <div className="mb-2 flex items-center gap-2 px-2.5">
+                      <span className="font-mono text-[10px] tracking-[0.08em] text-muted uppercase">
+                        {testament === "OT" ? "Old Testament" : "New Testament"}
+                      </span>
+                      <span aria-hidden="true" className="h-px flex-1 bg-rule" />
+                    </div>
+                    <div className="flex flex-col">
                       {books.map((b) => {
                         const active = b.id === selectedBook.id;
                         return (
@@ -228,16 +233,12 @@ export function BookChapterModal({
                             type="button"
                             onClick={() => selectBook(b)}
                             aria-current={active ? "true" : undefined}
-                            className={`focus-carbon flex w-full items-center gap-1.5 truncate rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors ${
-                              active ? "text-primary" : "text-card-foreground hover:bg-accent"
+                            className={`focus-editorial flex w-full items-center gap-1.5 truncate border-l-2 px-2.5 py-2 text-left text-sm transition-colors ${
+                              active
+                                ? "border-signal bg-field-neutral font-semibold text-signal"
+                                : "border-transparent text-ink hover:bg-field-neutral"
                             } ${languageFontClass}`}
                           >
-                            <span
-                              aria-hidden="true"
-                              className={`font-ethiopic shrink-0 text-xs ${active ? "opacity-100" : "opacity-0"}`}
-                            >
-                              ፠
-                            </span>
                             {bookName(b, language)}
                           </button>
                         );
@@ -252,17 +253,20 @@ export function BookChapterModal({
           {/* Chapters */}
           <div
             ref={chaptersColRef}
-            className={`min-w-0 flex-1 flex-col overflow-y-auto bg-card md:flex md:flex-[5] md:border-l md:border-border ${
+            className={`min-w-0 flex-1 flex-col overflow-y-auto md:flex md:flex-[5] md:border-l md:border-ink ${
               mobileStep === "chapters" ? "flex" : "hidden"
             }`}
             onKeyDown={(e) =>
               onColumnKeyDown(e, chaptersColRef, () => focusColumnEntry(booksColRef), undefined)
             }
           >
-            <div className="px-3 pt-3 pb-2">
-              <p className="font-display text-sm font-medium text-muted-foreground">Chapters</p>
+            <div className="mb-2 flex items-center gap-2 px-3 pt-3">
+              <span className="font-mono text-[10px] tracking-[0.08em] text-muted uppercase">
+                Chapters
+              </span>
+              <span aria-hidden="true" className="h-px flex-1 bg-rule" />
             </div>
-            <div className="grid grid-cols-4 gap-x-2 gap-y-3 px-3 pb-3 sm:grid-cols-5 md:grid-cols-6">
+            <div className="grid grid-cols-4 gap-2 px-3 pb-3 sm:grid-cols-5 md:grid-cols-6">
               {chapters.map((n) => {
                 const active = n === selectedChapter;
                 return (
@@ -274,10 +278,10 @@ export function BookChapterModal({
                     type="button"
                     onClick={() => pickChapter(n)}
                     aria-current={active ? "true" : undefined}
-                    className={`focus-carbon flex h-10 items-center justify-center rounded-md border text-sm font-medium ${
+                    className={`focus-editorial flex h-10 items-center justify-center border font-mono text-sm ${
                       active
-                        ? "border-primary text-primary font-semibold"
-                        : "border-transparent bg-background text-foreground hover:bg-accent"
+                        ? "border-signal bg-signal font-bold text-paper-white"
+                        : "border-rule text-ink hover:border-ink hover:bg-field-neutral"
                     }`}
                   >
                     {n}

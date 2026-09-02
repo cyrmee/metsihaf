@@ -58,20 +58,20 @@ export function InlineSelect<T extends string>({
         aria-expanded={open}
         aria-label={ariaLabel}
         style={triggerStyle}
-        className={`focus-carbon flex h-8 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm ${
+        className={`focus-editorial flex h-8 w-full items-center justify-between gap-2 border px-3 text-sm ${
           open
-            ? "border-primary bg-accent text-primary"
-            : "border-border bg-card text-foreground hover:bg-accent"
+            ? "border-ink bg-field-neutral text-ink"
+            : "border-[#b8b4aa] bg-paper-white text-ink hover:border-ink"
         }`}
       >
         <span className="truncate">{current?.label ?? value}</span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" />
       </button>
       {open && (
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-40 max-h-56 overflow-y-auto rounded-md border border-border bg-card p-1 shadow-lg"
+          className="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-40 max-h-56 overflow-y-auto border border-ink bg-paper-white p-1 shadow-[10px_10px_0_rgba(23,32,29,0.11)]"
         >
           {options.map((opt) => {
             const active = opt.id === value;
@@ -86,10 +86,10 @@ export function InlineSelect<T extends string>({
                   setOpen(false);
                 }}
                 style={opt.style}
-                className={`focus-carbon flex w-full items-center justify-between gap-2 rounded-sm border border-transparent px-2.5 py-2 text-left text-sm ${
+                className={`focus-editorial flex w-full items-center justify-between gap-2 border-l-2 px-2.5 py-2 text-left text-sm ${
                   active
-                    ? "bg-accent text-primary"
-                    : "text-foreground hover:border-border hover:bg-accent/60"
+                    ? "border-signal bg-field-neutral font-semibold text-signal"
+                    : "border-transparent text-ink hover:bg-field-neutral"
                 }`}
               >
                 <span className="truncate">{opt.label}</span>

@@ -16,17 +16,17 @@ export default function ErrorPage({ error, reset }: { error: Error; reset: () =>
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => reset()}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center bg-signal px-4 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase transition-colors hover:bg-signal-hover"
           >
             Try again
           </button>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full reload to escape a broken render tree */}
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center border border-ink px-4 py-2 text-sm text-ink transition-colors hover:bg-ink hover:text-paper-white"
           >
             Go home
           </a>

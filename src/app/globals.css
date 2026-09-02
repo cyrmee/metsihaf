@@ -2,25 +2,32 @@
 @source "../";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
 /*
- * Design system: "Codex" — an old scripture volume, not a border pattern.
- * Solid paper surfaces (no blur, no glass), a deep indigo ink for every
- * interactive accent, ochre reserved for reference numerals, and
- * vermilion reserved for red-letter text. Chrome is quiet — hairline
- * borders, modest radii — so the reading column stays the one thing in
- * the room with any presence.
+ * Design system: "Editorial Intelligence" — a warm archival paper reading
+ * desk, not a border pattern. Solid paper surfaces (no blur, no glass),
+ * near-black ink for structure, rust-red reserved for actions/attention.
+ * Ochre (reference numerals) and vermilion (red-letter text) are
+ * content-level markers, kept deliberately distinct from the rust-red UI
+ * signal so scripture markup never reads as a UI action.
  */
 
 @theme inline {
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.25rem;
-  --radius-4xl: 1.5rem;
+  /*
+   * Verse-level side panels (cross-refs, footnotes, study notes) dock beside
+   * the reading card at 26rem wide without ever resizing that card. That
+   * only fits once the viewport is wide enough to hold a 48rem-max card
+   * centered *and* a 26rem panel in its side margin — narrower than this,
+   * the panels fall back to a centered overlay instead of the reading
+   * column shifting to make room.
+   */
+  --breakpoint-panel: 106.25rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-3xl: 0rem;
+  --radius-4xl: 0rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -41,6 +48,22 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-paper-white: var(--paper-white);
+  --color-rule: var(--rule);
+  --color-signal: var(--signal);
+  --color-signal-hover: var(--signal-hover);
+  --color-support: var(--support);
+  --color-warning: var(--warning);
+  --color-quiet: var(--quiet);
+  --color-focus: var(--focus);
+  --color-field-support: var(--field-support);
+  --color-field-conflict: var(--field-conflict);
+  --color-field-neutral: var(--field-neutral);
+  --color-field-warning: var(--field-warning);
+  --color-field-inset: var(--field-inset);
   --color-highlight-yellow: var(--highlight-yellow);
   --color-highlight-red: var(--highlight-red);
   --color-highlight-orange: var(--highlight-orange);
@@ -63,48 +86,79 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  /*
+   * Google Fonts serves these families without a "Variable" suffix — that
+   * suffix is Fontsource's npm package naming, not a CSS font-family name.
+   * This project loads fonts via a <link>, not npm packages, so the plain
+   * names are used here.
+   */
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Literata", "Noto Serif Ethiopic", ui-serif, Georgia, serif;
   --font-ethiopic: "Noto Serif Ethiopic", "Literata", serif;
-  --font-display: "Source Serif 4", "Literata", ui-serif, Georgia, serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --color-ochre: var(--ochre);
   --color-vermilion: var(--vermilion);
 }
 
 :root {
-  --radius: 0.5rem;
-  /* Floating pill nav footprint on mobile (1rem offset + ~3rem pill) plus a clear gap above it. */
-  --nav-pill-clearance: 5.5rem;
-  /* Page (light) — a cool stone paper, no warm cream cast */
-  --background: oklch(0.975 0.004 240);
-  --foreground: oklch(0.19 0.012 260);
-  --card: oklch(0.99 0.002 240);
-  --card-foreground: oklch(0.19 0.012 260);
-  --popover: oklch(0.99 0.002 240);
-  --popover-foreground: oklch(0.19 0.012 260);
-  /* Indigo ink — the app's one interactive accent */
-  --primary: oklch(0.33 0.1 265);
-  --primary-foreground: oklch(0.98 0.004 240);
-  --secondary: oklch(0.94 0.006 240);
-  --secondary-foreground: oklch(0.19 0.012 260);
-  --muted: oklch(0.94 0.006 240);
-  --muted-foreground: oklch(0.45 0.014 260);
-  --accent: oklch(0.92 0.01 250);
-  --accent-foreground: oklch(0.22 0.014 260);
-  --destructive: oklch(0.5 0.17 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.88 0.006 240);
-  --input: oklch(0.8 0.008 240);
-  --ring: oklch(0.33 0.1 265);
-  /* Reference numerals (verse numbers, cross-ref markers) — old-gold, used nowhere else */
-  --ochre: oklch(0.6 0.11 75);
-  /* Red-letter text — functional only, never a UI accent */
-  --vermilion: oklch(0.5 0.16 25);
-  /*
-   * Verse highlight colors — applied as font color, not a background tint.
-   * Kept visibly more saturated than the app accents and off their hues,
-   * so a highlight never reads as "the app accent".
-   */
+  --radius: 0rem;
+  --nav-bar-height: 4.5rem;
+  --masthead-height: 5.25rem;
+
+  /* Ink — text, structural rules, dark chrome */
+  --ink: oklch(0.24 0.014 155);
+  /* Paper — main bordered work surfaces */
+  --paper: oklch(0.96 0.011 90);
+  /* Paper deep — page canvas backdrop */
+  --paper-deep: oklch(0.92 0.012 88);
+  /* Paper white — inputs, nested records, quotations */
+  --paper-white: oklch(0.995 0.006 90);
+  /* Rule — soft dividers and field borders */
+  --rule: oklch(0.72 0.014 85);
+  --muted: oklch(0.45 0.014 110);
+
+  --background: var(--paper-deep);
+  --foreground: var(--ink);
+  --card: var(--paper-white);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-white);
+  --popover-foreground: var(--ink);
+  /* Rust-red signal — the app's one action/attention accent */
+  --signal: oklch(0.45 0.13 35);
+  --signal-hover: oklch(0.36 0.12 33);
+  --support: oklch(0.42 0.06 165);
+  --warning: oklch(0.5 0.1 65);
+  --quiet: oklch(0.45 0.03 210);
+  --focus: oklch(0.78 0.1 55);
+
+  --primary: var(--signal);
+  --primary-foreground: var(--paper-white);
+  --secondary: var(--field-neutral);
+  --secondary-foreground: var(--ink);
+  --muted-foreground: var(--muted);
+  --accent: var(--field-neutral);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal);
+  --destructive-foreground: var(--paper-white);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--signal);
+
+  --field-support: oklch(0.92 0.025 165);
+  --field-conflict: oklch(0.92 0.025 45);
+  --field-neutral: oklch(0.93 0.008 90);
+  --field-warning: oklch(0.93 0.03 75);
+  --field-inset: oklch(0.94 0.01 88);
+
+  /* Reference numerals (verse numbers, cross-ref/footnote markers) — a golden
+     mark, kept warmer/more yellow than --signal so it never reads as an action. */
+  --ochre: oklch(0.62 0.13 80);
+  /* Red-letter text — an orange-leaning warm red, deliberately distinct from
+     --signal's brick-red so scripture markup and UI actions never collide. */
+  --vermilion: oklch(0.53 0.19 38);
+
   --highlight-yellow: oklch(0.58 0.19 92);
   --highlight-red: oklch(0.5 0.22 20);
   --highlight-orange: oklch(0.56 0.2 48);
@@ -114,66 +168,23 @@
   --highlight-blue: oklch(0.5 0.16 225);
   --highlight-purple: oklch(0.5 0.18 315);
   --highlight-pink: oklch(0.55 0.2 350);
-  --chart-1: oklch(0.33 0.1 265);
-  --chart-2: oklch(0.6 0.11 75);
-  --chart-3: oklch(0.5 0.16 25);
-  --chart-4: oklch(0.55 0.13 205);
-  --chart-5: oklch(0.48 0.15 155);
-  --sidebar: oklch(0.99 0.002 240);
-  --sidebar-foreground: oklch(0.19 0.012 260);
-  --sidebar-primary: oklch(0.33 0.1 265);
-  --sidebar-primary-foreground: oklch(0.98 0.004 240);
-  --sidebar-accent: oklch(0.94 0.006 240);
-  --sidebar-accent-foreground: oklch(0.19 0.012 260);
-  --sidebar-border: oklch(0.88 0.006 240);
-  --sidebar-ring: oklch(0.33 0.1 265);
-}
 
-.dark {
-  /* Indigo-black — a lamp-lit page at night, not an AMOLED true black */
-  --background: oklch(0.17 0.014 260);
-  --foreground: oklch(0.93 0.008 240);
-  --card: oklch(0.21 0.015 260);
-  --card-foreground: oklch(0.93 0.008 240);
-  --popover: oklch(0.21 0.015 260);
-  --popover-foreground: oklch(0.93 0.008 240);
-  --primary: oklch(0.72 0.09 265);
-  --primary-foreground: oklch(0.17 0.014 260);
-  --secondary: oklch(0.26 0.014 260);
-  --secondary-foreground: oklch(0.93 0.008 240);
-  --muted: oklch(0.26 0.014 260);
-  --muted-foreground: oklch(0.66 0.014 250);
-  --accent: oklch(0.3 0.02 260);
-  --accent-foreground: oklch(0.93 0.008 240);
-  --destructive: oklch(0.62 0.17 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.32 0.016 260);
-  --input: oklch(0.36 0.016 260);
-  --ring: oklch(0.72 0.09 265);
-  --ochre: oklch(0.75 0.12 78);
-  --vermilion: oklch(0.7 0.17 25);
-  --highlight-yellow: oklch(0.82 0.19 92);
-  --highlight-red: oklch(0.7 0.22 20);
-  --highlight-orange: oklch(0.74 0.2 48);
-  --highlight-brown: oklch(0.6 0.13 55);
-  --highlight-green: oklch(0.74 0.16 155);
-  --highlight-teal: oklch(0.72 0.16 205);
-  --highlight-blue: oklch(0.72 0.17 225);
-  --highlight-purple: oklch(0.72 0.18 315);
-  --highlight-pink: oklch(0.76 0.2 350);
-  --chart-1: oklch(0.72 0.09 265);
-  --chart-2: oklch(0.75 0.12 78);
-  --chart-3: oklch(0.7 0.17 25);
-  --chart-4: oklch(0.72 0.16 205);
-  --chart-5: oklch(0.74 0.16 155);
-  --sidebar: oklch(0.21 0.015 260);
-  --sidebar-foreground: oklch(0.93 0.008 240);
-  --sidebar-primary: oklch(0.72 0.09 265);
-  --sidebar-primary-foreground: oklch(0.17 0.014 260);
-  --sidebar-accent: oklch(0.26 0.014 260);
-  --sidebar-accent-foreground: oklch(0.93 0.008 240);
-  --sidebar-border: oklch(0.32 0.016 260);
-  --sidebar-ring: oklch(0.72 0.09 265);
+  --chart-1: var(--signal);
+  --chart-2: var(--ochre);
+  --chart-3: var(--support);
+  --chart-4: var(--highlight-teal);
+  --chart-5: var(--highlight-green);
+
+  --sidebar: var(--paper-white);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--signal);
+  --sidebar-primary-foreground: var(--paper-white);
+  --sidebar-accent: var(--field-neutral);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--signal);
+
+  --hard-shadow: 10px 10px 0 rgba(23, 32, 29, 0.11);
 }
 
 @layer base {
@@ -191,7 +202,12 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background: linear-gradient(
+        rgba(23, 32, 29, 0.035) 1px,
+        transparent 1px
+      ),
+      var(--color-background);
+    background-size: 100% 32px;
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
@@ -209,7 +225,7 @@
   line-height: 1.95;
 }
 
-/* Large display headings — set with restraint, a codex title-page feel */
+/* Large display headings — set with restraint, an editorial title-page feel */
 @utility font-display {
   font-family: var(--font-display);
   font-optical-sizing: auto;
@@ -225,11 +241,18 @@
   color: var(--color-vermilion);
 }
 
-/* Carbon-style focus ring */
-@utility focus-carbon {
+/* A major bordered work surface: the reading column, settings/library panels, modals. */
+@utility major-surface {
+  border: 1px solid var(--color-ink);
+  background: var(--color-paper);
+  box-shadow: var(--hard-shadow);
+}
+
+/* Editorial focus ring — a 3px offset outline, not a soft glow. */
+@utility focus-editorial {
   &:focus-visible {
-    outline: 2px solid var(--color-ring);
-    outline-offset: -2px;
+    outline: 3px solid var(--color-focus);
+    outline-offset: 3px;
   }
 }
 

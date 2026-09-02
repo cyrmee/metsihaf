@@ -6,6 +6,9 @@ import { AppNav } from "@/components/app-nav";
 import { QueryProvider } from "@/components/query-provider";
 import { AuthSyncProvider } from "@/components/auth-sync-provider";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { OfflineInstallPrompt } from "@/components/offline-install-prompt";
+import { OnlineStatusToast } from "@/components/online-status-toast";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Metsihaf — Bible Reader",
@@ -29,47 +32,31 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f4f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#1c1e26" },
-  ],
-  colorScheme: "light dark",
+  themeColor: "#e9e5da",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <script
-          // Apply saved dark-mode before paint, so there's no flash of the default theme.
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{
-              var d=JSON.parse(localStorage.getItem("bible.darkMode")||"false");
-              document.documentElement.classList.toggle("dark",!!d);
-            }catch(e){}})();`,
-          }}
-        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font -- rule targets the Pages Router; this is the App Router root layout */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Abyssinica+SIL&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=Literata:ital,wght@0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Ethiopic:wght@400;500;600;700&family=Noto+Serif+Ethiopic:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Abyssinica+SIL&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Literata:ital,wght@0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Ethiopic:wght@400;500;600;700&family=Noto+Serif+Ethiopic:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@400..700&display=swap"
         />
       </head>
       <body>
         <ServiceWorkerRegister />
+        <OnlineStatusToast />
+        <Toaster />
         <QueryProvider>
           <AuthSyncProvider>
-            <div className="flex min-h-screen flex-col pt-0 pb-28 md:pt-28 md:pb-0">
+            <div className="flex min-h-screen flex-col pb-[72px] md:pt-[84px] md:pb-0">
               <AppNav />
+              <OfflineInstallPrompt />
               <main className="flex-1">{children}</main>
-              <footer className="border-t border-border pt-6 pb-4">
-                <p className="mx-auto max-w-6xl px-4 text-center text-xs text-muted-foreground">
-                  Amharic Bible text © United Bible Societies, used for non-commercial personal
-                  study.
-                </p>
-              </footer>
             </div>
           </AuthSyncProvider>
         </QueryProvider>

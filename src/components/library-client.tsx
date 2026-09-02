@@ -42,7 +42,7 @@ export function LibraryClient() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-2 py-8 sm:px-4">
       <div className="text-center">
         <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
           My Library
@@ -66,7 +66,7 @@ export function LibraryClient() {
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="truncate">{t.label}</span>
-                <span className="hidden text-muted-foreground sm:inline">({counts[t.id]})</span>
+                <span className="hidden text-muted sm:inline">· {counts[t.id]}</span>
               </TabsTrigger>
             );
           })}
@@ -130,8 +130,9 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-        {empty}
+      <div className="flex items-center gap-4 border-t border-b border-rule py-6">
+        <span className="font-mono text-[11px] tracking-[0.06em] text-muted uppercase">00</span>
+        <p className="font-display text-base text-foreground">{empty}</p>
       </div>
     );
   }
@@ -147,20 +148,23 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
   };
 
   return (
-    <ul className="flex flex-col gap-1.5">
-      {items.map((item) => {
+    <ul className="flex flex-col border border-ink">
+      {items.map((item, i) => {
         const displayRef = item.displayRef ?? item.ref;
         const parts = displayRef.split(".");
         const isEditing = editingRef === item.ref;
         return (
           <li
             key={item.ref}
-            className="flex items-start justify-between gap-3 rounded-md bg-card px-3 py-3"
+            className={`flex items-start justify-between gap-3 bg-paper-white px-3 py-3 ${i > 0 ? "border-t border-rule" : ""}`}
           >
+            <span className="mt-0.5 font-mono text-[10px] text-muted">
+              {String(i + 1).padStart(2, "0")}
+            </span>
             <div className="min-w-0 flex-1">
               <Link
                 href={`/read/${parts[0] ?? "GEN"}/${parts[1] ?? "1"}#v${parts[2]}`}
-                className="focus-carbon text-sm font-semibold text-primary hover:underline"
+                className="focus-editorial text-sm font-semibold text-signal hover:underline"
               >
                 {formatRef(displayRef)}
               </Link>
@@ -176,20 +180,20 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
                     onChange={(e) => setDraft(e.target.value)}
                     rows={2}
                     autoFocus
-                    className="focus-carbon w-full rounded-md border border-input bg-background p-2 text-sm text-foreground"
+                    className="focus-editorial w-full border border-[#b8b4aa] bg-paper-white p-2 text-sm text-ink"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => saveEdit(item)}
-                      className="focus-carbon flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                      className="focus-editorial flex items-center gap-1 bg-signal px-2.5 py-1 font-mono text-[11px] font-bold tracking-[0.06em] text-paper-white uppercase hover:bg-signal-hover"
                     >
                       <Check className="h-3 w-3" /> Save
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingRef(null)}
-                      className="focus-carbon flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+                      className="focus-editorial flex items-center gap-1 text-xs text-ink underline decoration-1 underline-offset-4 hover:text-signal"
                     >
                       <X className="h-3 w-3" /> Cancel
                     </button>
@@ -201,13 +205,13 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
                 )
               )}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-3 border-l border-rule pl-3">
               {item.onSave && !isEditing && (
                 <button
                   type="button"
                   onClick={() => startEdit(item)}
                   aria-label={`Edit note on ${formatRef(displayRef)}`}
-                  className="focus-carbon text-muted-foreground hover:text-foreground"
+                  className="focus-editorial text-muted hover:text-ink"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -216,7 +220,7 @@ function EntryList({ items, empty }: { items: EntryItem[]; empty: string }) {
                 type="button"
                 onClick={item.onRemove}
                 aria-label={`Remove ${formatRef(displayRef)}`}
-                className="focus-carbon text-muted-foreground hover:text-destructive"
+                className="focus-editorial text-muted hover:text-signal"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

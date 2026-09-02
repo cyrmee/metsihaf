@@ -25,7 +25,6 @@ import {
 import {
   getAccentTheme,
   getBookmarks,
-  getDarkMode,
   getFontSize,
   getHighlights,
   getLetterSpacing,
@@ -35,7 +34,6 @@ import {
   onStoreChange,
   saveReadingPosition,
   setAccentTheme,
-  setDarkMode,
   setFontSize,
   setHighlight,
   setLetterSpacing,
@@ -78,7 +76,6 @@ async function pullRemoteIntoLocal() {
     // Preferences are a single row (no per-item merge); local device settings win
     // only if this is the very first sync (i.e. no local value was ever set)
     // — in practice we just apply the remote copy, since it's the last-synced state.
-    setDarkMode(remote.darkMode);
     setFontSize(remote.fontSize);
     setAccentTheme(remote.accentTheme);
     setLineSpacing(remote.lineSpacing);
@@ -98,12 +95,16 @@ async function pushAllLocal() {
     await upsertReadingPosition(pos.book, pos.chapter, pos.translation);
   }
   await updatePreferences({
-    darkMode: getDarkMode(),
     fontSize: getFontSize(),
     accentTheme: getAccentTheme(),
     lineSpacing: getLineSpacing(),
     letterSpacing: getLetterSpacing(),
   });
+}
+
+/** Push in the background; a failure (e.g. offline) is swallowed — the local write already succeeded, and the next successful push sends the current state anyway, so nothing is lost. */
+function pushAllLocalBestEffort() {
+  pushAllLocal().catch(() => {});
 }
 
 /**
@@ -119,16 +120,20 @@ export function startRemoteSync(): () => void {
     await pullRemoteIntoLocal();
     if (cancelled) return;
     await pushAllLocal();
-  })();
-
-  const unsubscribe = onStoreChange(() => {
-    // Fire-and-forget: push the full local state on every local change.
-    // Simpler and safer than diffing, and these tables are small.
-    void pushAllLocal();
+  })().catch(() => {
+    // Best-effort: offline or a transient error at sign-in time. The next
+    // local change (or reconnect, or app load) retries the full sync anyway.
   });
+
+  const unsubscribeStore = onStoreChange(pushAllLocalBestEffort);
+  // A change made while offline never gets a second attempt on its own —
+  // nothing else triggers a retry until the next local edit or app reload.
+  // Catch the moment connectivity comes back and push then too.
+  window.addEventListener("online", pushAllLocalBestEffort);
 
   return () => {
     cancelled = true;
-    unsubscribe();
+    unsubscribeStore();
+    window.removeEventListener("online", pushAllLocalBestEffort);
   };
 }

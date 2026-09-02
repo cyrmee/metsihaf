@@ -3,21 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Columns2, Search, LibraryBig, Settings } from "lucide-react";
+import { BookOpen, Search, LibraryBig, Settings } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getDarkMode, getReadingPosition, onStoreChange } from "@/lib/local-store";
+import { getReadingPosition, onStoreChange } from "@/lib/local-store";
 import { useSession } from "@/lib/use-session";
 
-/** Matches the "/read/BOOK/CHAPTER" or "/compare/BOOK/CHAPTER" a book/chapter page is currently on. */
-const BOOK_CHAPTER_RE = /^\/(?:read|compare)\/([^/]+)\/(\d+)/;
+/** Matches the "/read/BOOK/CHAPTER" a book/chapter page is currently on. */
+const BOOK_CHAPTER_RE = /^\/read\/([^/]+)\/(\d+)/;
 
 /**
- * Where the Read and Compare tabs should point right now: the book/chapter
- * already on screen (just swapping page), else the last-viewed position
- * saved by either page, else Genesis 1 as a last resort. Without this, the
- * two tabs would always reset to GEN/1 and switching between them (or into
- * Search/Library/Settings and back) would silently lose your place.
+ * Where the Read tab should point right now: the book/chapter already on
+ * screen (just swapping page), else the last-viewed position saved by the
+ * page, else Genesis 1 as a last resort. Without this, the tab would always
+ * reset to GEN/1 and navigating into Search/Library/Settings and back would
+ * silently lose your place.
  */
 function useBookChapterSuffix(pathname: string): string {
   const [savedPos, setSavedPos] = useState<string | null>(null);
@@ -35,9 +35,10 @@ function useBookChapterSuffix(pathname: string): string {
 }
 
 /**
- * A floating glass pill — icon-only at every breakpoint, bottom-center on
- * mobile and top-center on desktop. The active destination is marked in
- * indigo, the app's one accent.
+ * A ruled masthead — a thin top bar with the wordmark and text nav links on
+ * desktop, and a ruled bottom bar with icon+label pairs on mobile. Flat
+ * paper, ink rules, no floating pill or blur. Active destination is marked
+ * in rust-red, the app's one action/attention accent.
  */
 export function AppNav() {
   const pathname = usePathname();
@@ -46,67 +47,56 @@ export function AppNav() {
 
   const navLinks = [
     { href: `/read/${bookChapter}`, label: "Read", icon: BookOpen, matchPrefix: "/read" },
-    {
-      href: `/compare/${bookChapter}`,
-      label: "Compare",
-      icon: Columns2,
-      matchPrefix: "/compare",
-    },
     { href: "/search", label: "Search", icon: Search, exact: true },
     { href: "/library", label: "Library", icon: LibraryBig, exact: true },
     { href: "/settings", label: "Settings", icon: Settings, exact: true },
   ];
 
-  useEffect(() => {
-    const apply = () => {
-      document.documentElement.classList.toggle("dark", getDarkMode());
-    };
-    apply();
-    return onStoreChange(apply);
-  }, []);
-
   return (
     <nav
       aria-label="Primary"
-      className={cn(
-        "fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full",
-        "border border-border/50 bg-card/70 shadow-lg backdrop-blur-md",
-        "px-2.5 py-2.5",
-        "bottom-[calc(1rem+env(safe-area-inset-bottom))] md:top-4 md:bottom-auto",
-      )}
+      className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-ink bg-paper md:top-0 md:bottom-auto md:justify-between md:border-t-0 md:border-b md:px-6 md:py-0"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {navLinks.map((link) => {
-        const isActive = link.matchPrefix
-          ? pathname.startsWith(link.matchPrefix)
-          : link.exact
-            ? pathname === link.href
-            : pathname.startsWith(link.href);
-        const Icon = link.icon;
-        const showAccountDot = link.label === "Settings" && !!user;
-        return (
-          <Link
-            key={link.label}
-            href={link.href}
-            aria-label={showAccountDot ? `${link.label} (signed in)` : link.label}
-            aria-current={isActive ? "page" : undefined}
-            title={link.label}
-            className={cn(
-              "focus-carbon relative flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-              isActive
-                ? "bg-accent text-primary"
-                : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
-            )}
-          >
-            <Icon className="h-5 w-5" />
-            {showAccountDot && (
-              <span
-                aria-hidden="true"
-                className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary"
-              />
-            )}
-          </Link>
-        );
-      })}
+      <span className="hidden font-mono text-[14px] font-extrabold tracking-[0.2em] text-ink uppercase md:flex md:items-center md:gap-3 md:py-5">
+        METSIHAF
+        <span aria-hidden="true" className="h-[2px] w-8 bg-signal" />
+      </span>
+
+      <div className="flex w-full items-stretch justify-around md:w-auto md:justify-end md:gap-1">
+        {navLinks.map((link) => {
+          const isActive = link.matchPrefix
+            ? pathname.startsWith(link.matchPrefix)
+            : link.exact
+              ? pathname === link.href
+              : pathname.startsWith(link.href);
+          const Icon = link.icon;
+          const showAccountDot = link.label === "Settings" && !!user;
+          return (
+            <Link
+              key={link.label}
+              href={link.href}
+              aria-label={showAccountDot ? `${link.label} (signed in)` : link.label}
+              aria-current={isActive ? "page" : undefined}
+              title={link.label}
+              className={cn(
+                "focus-editorial flex flex-col items-center gap-1 border-t-2 py-2 md:flex-row md:gap-2 md:border-t-0 md:border-b-2 md:px-4 md:py-5",
+                isActive
+                  ? "border-signal text-signal"
+                  : "border-transparent text-muted hover:text-ink",
+              )}
+            >
+              <Icon className="h-5 w-5 md:hidden" />
+              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase md:text-[11px]">
+                {link.label}
+                {showAccountDot && (
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-signal" />
+                )}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

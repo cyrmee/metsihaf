@@ -44,6 +44,40 @@ export function getChapterRows(
   });
 }
 
+/** Every verse group in a whole book of the given version, ordered by chapter then verse — used for bulk/offline download. */
+export function getBookRows(
+  version: string,
+  book: string,
+): Promise<(VerseRow & { chapter: number })[]> {
+  return prisma.verse.findMany({
+    where: { version, book },
+    orderBy: [{ chapter: "asc" }, { verse: "asc" }],
+    select: {
+      chapter: true,
+      verse: true,
+      verseEnd: true,
+      label: true,
+      text: true,
+      redLetter: true,
+      footnotes: true,
+      heading: true,
+      subheading: true,
+      poetic: true,
+    },
+  });
+}
+
+/** Every study note in a whole book, ordered by chapter then verse — used for bulk/offline download. */
+export function getStudyNotesForBook(
+  book: string,
+): Promise<(StudyNoteRow & { chapter: number })[]> {
+  return prisma.studyNote.findMany({
+    where: { book },
+    orderBy: [{ chapter: "asc" }, { verse: "asc" }],
+    select: { chapter: true, source: true, verse: true, verseEnd: true, text: true },
+  });
+}
+
 /** The verse group containing a given verse number, or null if not found. */
 export async function getVerseTextRow(
   version: string,

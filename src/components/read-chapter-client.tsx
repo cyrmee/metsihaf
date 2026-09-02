@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CaseSensitive, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChapterText, type ChapterTextHandle } from "@/components/chapter-text";
@@ -9,7 +9,7 @@ import { InlineSelect } from "@/components/inline-select";
 import { TranslationSwitcher } from "@/components/translation-switcher";
 import { BOOK_BY_ID, bookName, neighborChapter } from "@/data/books";
 import { LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/bible";
-import { useChapter } from "@/lib/use-chapter";
+import { useChapter, useStudyNotes } from "@/lib/use-chapter";
 import { useChapterNavigation } from "@/lib/use-chapter-nav";
 import { useTranslations } from "@/lib/use-translations";
 import {
@@ -79,6 +79,7 @@ export function ReadChapterClient({
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const fontMenuRef = useRef<HTMLDivElement>(null);
   const chapterTextRef = useRef<ChapterTextHandle>(null);
+  const [selectionLabel, setSelectionLabel] = useState<string | null>(null);
   const { byId } = useTranslations();
   const language = byId[translation]?.language ?? "en";
   const fontOptions =
@@ -120,7 +121,23 @@ export function ReadChapterClient({
     }
   }, [bookId, chapter, translation, book]);
 
-  const { data, isLoading, error } = useChapter(translation, bookId, chapter);
+  const { data: chapterData, isLoading, error } = useChapter(translation, bookId, chapter);
+  const { data: studyNotesData } = useStudyNotes(bookId, chapter);
+
+  const data = useMemo(() => {
+    if (!chapterData) return chapterData;
+    if (!studyNotesData?.notes.length) return chapterData;
+    const noteByVerse = new Map(studyNotesData.notes.map((n) => [n.verse, n]));
+    return {
+      ...chapterData,
+      verses: chapterData.verses.map((v) => {
+        const note = noteByVerse.get(v.verse);
+        return note
+          ? { ...v, studyNote: { verseEnd: note.verseEnd, text: note.text, source: note.source } }
+          : v;
+      }),
+    };
+  }, [chapterData, studyNotesData]);
 
   const isValid = !!book && Number.isInteger(chapter) && chapter >= 1 && chapter <= book.chapters;
   const prev = isValid ? neighborChapter(bookId, chapter, -1) : null;
@@ -134,12 +151,12 @@ export function ReadChapterClient({
 
   if (!isValid) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="text-xl font-semibold text-foreground">Chapter not found</h1>
+      <div className="mx-auto max-w-3xl px-2 py-16 text-center sm:px-4">
+        <h1 className="font-display text-xl font-semibold text-foreground">Chapter not found</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           That book or chapter doesn&apos;t exist in the Bible.
         </p>
-        <Link href="/" className="mt-4 inline-block text-sm text-primary hover:underline">
+        <Link href="/" className="mt-4 inline-block text-sm text-signal hover:underline">
           Back to books
         </Link>
       </div>
@@ -181,63 +198,65 @@ export function ReadChapterClient({
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
+    // At xl+ this becomes a fixed-height shell — masthead height already
+    // reserved by the body's own padding, see layout.tsx — so that the
+    // reading card can make its verse text the *only* scrolling region
+    // (below). Everything else (this selector row, the card's header row,
+    // the highlight rail, and the reference panels) then simply never
+    // moves, instead of relying on sticky/fixed tricks layered over a
+    // scrolling page.
+    <div className="mx-auto max-w-3xl px-2 py-6 sm:px-4 xl:flex xl:h-[calc(100vh-var(--masthead-height))] xl:flex-col xl:overflow-hidden">
+      <div className="mb-10 flex flex-wrap items-center justify-center gap-3 xl:shrink-0">
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
           aria-label="Change book or chapter"
           title="Change book or chapter"
-          className="focus-carbon group flex h-9 items-center gap-2.5 rounded-md border border-border px-3 hover:bg-accent"
+          className="focus-editorial group flex h-9 items-center gap-2.5 border border-ink px-3 hover:bg-ink hover:text-paper-white"
         >
           <h1 className="sr-only">
             {bookName(book, language)} {chapter}
           </h1>
           <span
             aria-hidden="true"
-            className={`font-display text-sm font-medium text-primary ${language === "am" ? LANGUAGE_FONT_CLASS[language] : "italic"}`}
+            className={`font-display text-sm font-medium ${language === "am" ? LANGUAGE_FONT_CLASS[language] : "italic"}`}
           >
             {bookName(book, language)}
           </span>
-          <span aria-hidden="true" className="h-4 w-px bg-border" />
-          <span
-            aria-hidden="true"
-            className="text-base leading-none font-semibold tracking-tight text-foreground"
-          >
-            {chapter}
-          </span>
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
+          <ChevronDown className="h-3.5 w-3.5 transition-colors" />
         </button>
-        <TranslationSwitcher value={translation} onChange={changeTranslation} size="sm" />
+        <TranslationSwitcher value={translation} onChange={changeTranslation} />
         <div className="relative" ref={fontMenuRef}>
           <button
             type="button"
             aria-label="Text size"
             aria-expanded={fontMenuOpen}
             onClick={() => setFontMenuOpen((v) => !v)}
-            className={`focus-carbon flex h-9 w-9 items-center justify-center rounded-md border ${
+            className={`focus-editorial flex h-9 w-9 items-center justify-center border ${
               fontMenuOpen
-                ? "border-primary bg-accent text-primary"
-                : "border-border text-foreground hover:bg-accent"
+                ? "border-signal bg-signal text-paper-white"
+                : "border-ink text-ink hover:bg-ink hover:text-paper-white"
             }`}
           >
             <CaseSensitive className="h-4 w-4" />
           </button>
           {fontMenuOpen && (
-            <div className="absolute top-[calc(100%+0.5rem)] right-0 z-30 w-64 rounded-lg border border-border bg-card p-3 shadow-lg">
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Text size</p>
-              <div className="mb-3 flex items-center gap-1">
-                {FONT_SIZES.map((size) => (
+            <div className="absolute top-[calc(100%+0.5rem)] right-0 z-30 w-64 border border-ink bg-paper p-3 shadow-[10px_10px_0_rgba(23,32,29,0.11)]">
+              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+                Text size
+              </p>
+              <div className="mb-3 flex items-center border border-ink">
+                {FONT_SIZES.map((size, i) => (
                   <button
                     key={size}
                     type="button"
                     onClick={() => changeFontSize(size)}
                     aria-label={`Text size ${size}`}
                     aria-pressed={fontSize === size}
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-md border font-serif ${
+                    className={`focus-editorial flex h-8 flex-1 items-center justify-center font-serif ${i > 0 ? "border-l border-ink" : ""} ${
                       fontSize === size
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-foreground hover:bg-accent"
+                        ? "bg-ink text-paper-white"
+                        : "text-ink hover:bg-field-neutral"
                     }`}
                     style={{ fontSize: `${Math.min(size, 19)}px` }}
                   >
@@ -246,7 +265,9 @@ export function ReadChapterClient({
                 ))}
               </div>
 
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Font</p>
+              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+                Font
+              </p>
               <InlineSelect
                 className="mb-3"
                 ariaLabel="Font"
@@ -265,18 +286,24 @@ export function ReadChapterClient({
                 options={fontOptions}
               />
 
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Line spacing</p>
-              <div className="mb-3 flex items-center gap-1" role="group" aria-label="Line spacing">
-                {LINE_SPACINGS.map((s) => (
+              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+                Line spacing
+              </p>
+              <div
+                className="mb-3 flex items-center border border-ink"
+                role="group"
+                aria-label="Line spacing"
+              >
+                {LINE_SPACINGS.map((s, i) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => changeLineSpacing(s.id)}
                     aria-pressed={lineSpacing === s.id}
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-md border text-xs font-medium ${
+                    className={`focus-editorial flex h-8 flex-1 items-center justify-center text-xs ${i > 0 ? "border-l border-ink" : ""} ${
                       lineSpacing === s.id
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-foreground hover:bg-accent"
+                        ? "bg-ink text-paper-white"
+                        : "text-ink hover:bg-field-neutral"
                     }`}
                   >
                     {s.label}
@@ -284,22 +311,24 @@ export function ReadChapterClient({
                 ))}
               </div>
 
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Letter spacing</p>
+              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+                Letter spacing
+              </p>
               <div
-                className="mb-3 flex items-center gap-1"
+                className="mb-3 flex items-center border border-ink"
                 role="group"
                 aria-label="Letter spacing"
               >
-                {LETTER_SPACINGS.map((s) => (
+                {LETTER_SPACINGS.map((s, i) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => changeLetterSpacing(s.id)}
                     aria-pressed={letterSpacing === s.id}
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-md border text-xs font-medium ${
+                    className={`focus-editorial flex h-8 flex-1 items-center justify-center text-xs ${i > 0 ? "border-l border-ink" : ""} ${
                       letterSpacing === s.id
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-foreground hover:bg-accent"
+                        ? "bg-ink text-paper-white"
+                        : "text-ink hover:bg-field-neutral"
                     }`}
                   >
                     {s.label}
@@ -315,50 +344,96 @@ export function ReadChapterClient({
         book={book}
         chapter={chapter}
         translation={translation}
-        linkTo="read"
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onJumpToVerse={jumpToVerse}
       />
 
-      {isLoading && <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && (
+        <p className="py-12 text-center text-sm text-muted-foreground xl:shrink-0">Loading…</p>
+      )}
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-card p-4 text-center text-sm text-destructive">
+        <div className="border border-signal bg-field-conflict p-4 text-center text-sm text-signal xl:shrink-0">
           Couldn&apos;t load this chapter. {(error as Error).message}
         </div>
       )}
       {data && (
-        <ChapterText
-          ref={chapterTextRef}
-          data={data}
-          fontSize={fontSize}
-          lineSpacing={lineSpacing}
-          letterSpacing={letterSpacing}
-        />
+        <div className="border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-hidden">
+          {/*
+            Sticky below `xl` so the selection state (what's picked for
+            highlighting, copying, etc.) stays visible while scrolling
+            through a long chapter on a single-column page. `top-0` below
+            `xl` because mobile has no fixed masthead reserving space above
+            the card (AppNav docks to the *bottom* there) — this row's own
+            natural position is well under 11.5rem on a mobile layout, and
+            a sticky offset greater than an element's natural document
+            position clamps it down to that offset immediately, even at
+            scroll 0, overlapping whatever follows it in flow (its reserved
+            layout space is still based on the smaller natural position).
+            At `xl`+ the card itself no longer scrolls (only the verse text
+            below does — see the next div) and this row's own natural flow
+            position already lands it level with the highlight rail and
+            cross-ref/footnote/study-note panels beside the card, so it
+            just sits fixed in place there as an ordinary, non-scrolling
+            (`static`) flex child instead — no `top` offset needed.
+          */}
+          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-ink bg-paper px-3 py-2.5 sm:px-6 xl:static xl:shrink-0">
+            <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+              {selectionLabel
+                ? `Selected / ${selectionLabel}`
+                : `Reading / ${bookName(book, language)} ${chapter}`}
+            </span>
+            <span aria-hidden="true" className="h-px flex-1 bg-rule" />
+          </div>
+          <div className="relative px-1 py-6 sm:px-6 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-y-auto">
+            <ChapterText
+              ref={chapterTextRef}
+              data={data}
+              fontSize={fontSize}
+              lineSpacing={lineSpacing}
+              letterSpacing={letterSpacing}
+              onSelectionChange={setSelectionLabel}
+            />
+            {/*
+              Left inside the scrolling text (not pinned as a fixed footer)
+              so it reads as the end of the chapter, arrived at by scrolling
+              — the same place it's always been — rather than a
+              persistently visible control.
+            */}
+            <nav
+              aria-label="Chapter navigation"
+              className="mt-6 -mx-1 flex items-stretch sm:mx-0 xl:mt-auto xl:shrink-0 xl:pt-6"
+            >
+              {prev ? (
+                <Link
+                  href={`/read/${prev.book}/${prev.chapter}`}
+                  aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
+                  className="focus-editorial flex flex-1 items-center justify-center gap-2 border-r border-ink py-4 text-ink hover:bg-field-neutral"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="font-mono text-[11px] tracking-[0.06em] uppercase">
+                    Previous
+                  </span>
+                </Link>
+              ) : (
+                <span className="flex-1 border-r border-ink" />
+              )}
+              {next ? (
+                <Link
+                  href={`/read/${next.book}/${next.chapter}`}
+                  aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
+                  className="focus-editorial flex flex-1 items-center justify-center gap-2 bg-signal py-4 text-paper-white hover:bg-signal-hover"
+                >
+                  <span className="font-mono text-[11px] tracking-[0.06em] uppercase">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <span className="flex-1" />
+              )}
+            </nav>
+          </div>
+        </div>
       )}
-
-      <nav className="mt-10 flex items-center justify-center gap-3">
-        {prev && (
-          <Link
-            href={`/read/${prev.book}/${prev.chapter}`}
-            aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
-            title={`${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-        )}
-        {next && (
-          <Link
-            href={`/read/${next.book}/${next.chapter}`}
-            aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
-            title={`${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        )}
-      </nav>
     </div>
   );
 }

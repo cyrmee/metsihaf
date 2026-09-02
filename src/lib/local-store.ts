@@ -98,7 +98,6 @@ const KEYS = {
   notes: "bible.notes",
   position: "bible.position",
   translation: "bible.translation",
-  darkMode: "bible.darkMode",
   fontSize: "bible.fontSize",
   accentTheme: "bible.accentTheme",
   lineSpacing: "bible.lineSpacing",
@@ -106,6 +105,8 @@ const KEYS = {
   englishFont: "bible.englishFont",
   amharicFont: "bible.amharicFont",
   recentSearches: "bible.recentSearches",
+  offlineDownloadedAt: "bible.offlineDownloadedAt",
+  installPromptDismissed: "bible.installPromptDismissed",
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -225,14 +226,6 @@ export function setPreferredTranslation(id: string) {
   write(KEYS.translation, id);
 }
 
-export function getDarkMode(): boolean {
-  return read<boolean>(KEYS.darkMode, false);
-}
-
-export function setDarkMode(on: boolean) {
-  write(KEYS.darkMode, on);
-}
-
 export function getFontSize(): number {
   return read<number>(KEYS.fontSize, 18);
 }
@@ -325,4 +318,24 @@ export function removeRecentSearch(query: string, translation: string) {
 
 export function clearRecentSearches() {
   write(KEYS.recentSearches, []);
+}
+
+// ---- Offline download & install prompt ----
+
+/** When the full offline download last completed successfully, or null if it never has. */
+export function getOfflineDownloadedAt(): number | null {
+  return read<number | null>(KEYS.offlineDownloadedAt, null);
+}
+
+export function setOfflineDownloadedAt(at: number | null) {
+  write(KEYS.offlineDownloadedAt, at);
+}
+
+/** Whether the user dismissed the "install & download for offline" banner. */
+export function getInstallPromptDismissed(): boolean {
+  return read<boolean>(KEYS.installPromptDismissed, false);
+}
+
+export function setInstallPromptDismissed(dismissed: boolean) {
+  write(KEYS.installPromptDismissed, dismissed);
 }

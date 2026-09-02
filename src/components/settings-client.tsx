@@ -1,64 +1,36 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Moon, Sun, Trash2 } from "lucide-react";
-import { InlineSelect } from "@/components/inline-select";
+import { useState, type ReactNode } from "react";
+import { Check, ChevronDown, Download, Trash2 } from "lucide-react";
 import { AccountSection } from "@/components/account-section";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  AMHARIC_FONT_STACKS,
-  clearStudyData,
-  ENGLISH_FONT_STACKS,
-  getAmharicFont,
-  getDarkMode,
-  getEnglishFont,
-  getFontSize,
-  getLetterSpacing,
-  getLineSpacing,
-  setAmharicFont,
-  setDarkMode,
-  setEnglishFont,
-  setFontSize,
-  setLetterSpacing,
-  setLineSpacing,
-  type AmharicFont,
-  type EnglishFont,
-  type LetterSpacing,
-  type LineSpacing,
-} from "@/lib/local-store";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useOfflineDownload } from "@/hooks/use-offline-download";
+import { useTranslations } from "@/lib/use-translations";
+import { clearStudyData } from "@/lib/local-store";
 
-const FONT_SIZES = [15, 17, 19, 22, 25];
-const LINE_SPACINGS: { id: LineSpacing; label: string }[] = [
-  { id: "tight", label: "Tight" },
-  { id: "normal", label: "Normal" },
-  { id: "relaxed", label: "Relaxed" },
-];
-const LETTER_SPACINGS: { id: LetterSpacing; label: string }[] = [
-  { id: "tight", label: "Tight" },
-  { id: "normal", label: "Normal" },
-  { id: "wide", label: "Wide" },
-];
-const ENGLISH_FONTS: { id: EnglishFont; label: string }[] = [
-  { id: "sourceSerif", label: "Source Serif" },
-  { id: "literata", label: "Literata" },
-  { id: "merriweather", label: "Merriweather" },
-  { id: "lora", label: "Lora" },
-  { id: "crimsonPro", label: "Crimson Pro" },
-  { id: "plexSans", label: "Plex Sans" },
-];
-const AMHARIC_FONTS: { id: AmharicFont; label: string }[] = [
-  { id: "notoSerif", label: "Noto Serif" },
-  { id: "notoSans", label: "Noto Sans" },
-  { id: "abyssinica", label: "Abyssinica" },
-];
-
-/** A bordered card — the grouping unit for the whole page. */
+/** A ruled record group — the grouping unit for the whole page. */
 function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
-      <h2 className="border-b border-border px-4 py-2.5 font-display text-sm font-medium text-foreground">
-        {title}
+    <section className="border border-ink bg-paper">
+      <h2 className="flex items-center gap-3 border-b border-ink px-4 py-2.5">
+        <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+          {title} /
+        </span>
+        <span aria-hidden="true" className="h-px flex-1 bg-rule" />
       </h2>
-      <div className="divide-y divide-border">{children}</div>
+      <div className="divide-y divide-rule">{children}</div>
     </section>
   );
 }
@@ -86,80 +58,42 @@ function SettingsRow({
 
 /** Rounded disclosure, styled to match the cards around it. */
 function LegalDetails({ summary, children }: { summary: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
   return (
-    <details className="group overflow-hidden rounded-md border border-border">
-      <summary className="focus-carbon flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground marker:content-none">
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="overflow-hidden rounded-md border border-border"
+    >
+      <CollapsibleTrigger className="focus-editorial flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground">
         {summary}
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="flex flex-col gap-3 border-t border-border px-4 py-4 text-xs leading-relaxed text-muted-foreground">
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="flex flex-col gap-3 border-t border-border px-4 py-4 text-xs leading-relaxed text-muted-foreground">
         {children}
-      </div>
-    </details>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
 export function SettingsClient() {
-  const [dark, setDark] = useState(false);
-  const [fontSize, setFontSizeState] = useState(18);
-  const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
-  const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
-  const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
-  const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
-
-  useEffect(() => {
-    setDark(getDarkMode());
-    setFontSizeState(getFontSize());
-    setLineSpacingState(getLineSpacing());
-    setLetterSpacingState(getLetterSpacing());
-    setEnglishFontState(getEnglishFont());
-    setAmharicFontState(getAmharicFont());
-  }, []);
-
-  const changeDark = (on: boolean) => {
-    setDark(on);
-    setDarkMode(on);
-    document.documentElement.classList.toggle("dark", on);
-  };
-
-  const changeFontSize = (size: number) => {
-    setFontSizeState(size);
-    setFontSize(size);
-  };
-
-  const changeLineSpacing = (spacing: LineSpacing) => {
-    setLineSpacingState(spacing);
-    setLineSpacing(spacing);
-  };
-
-  const changeLetterSpacing = (spacing: LetterSpacing) => {
-    setLetterSpacingState(spacing);
-    setLetterSpacing(spacing);
-  };
-
-  const changeEnglishFont = (font: EnglishFont) => {
-    setEnglishFontState(font);
-    setEnglishFont(font);
-  };
-
-  const changeAmharicFont = (font: AmharicFont) => {
-    setAmharicFontState(font);
-    setAmharicFont(font);
-  };
+  const {
+    start: startDownload,
+    downloading,
+    progress,
+    error: downloadError,
+    downloadedAt,
+  } = useOfflineDownload();
+  const { translations } = useTranslations();
 
   const clearLocalData = () => {
-    if (
-      !window.confirm(
-        "Clear all bookmarks, highlights and notes on this device? This can't be undone.",
-      )
-    ) {
-      return;
-    }
     clearStudyData();
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-2xl px-2 py-8 sm:px-4">
       <div>
         <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
           Settings
@@ -170,122 +104,6 @@ export function SettingsClient() {
       </div>
 
       <div className="mt-8 flex flex-col gap-6">
-        <SettingsGroup title="Appearance">
-          <SettingsRow label="Dark mode">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={dark}
-              onClick={() => changeDark(!dark)}
-              className={`focus-carbon flex h-8 w-14 shrink-0 items-center rounded-full border px-1 transition-colors ${
-                dark ? "border-primary bg-primary" : "border-border bg-card"
-              }`}
-            >
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background transition-transform ${
-                  dark ? "translate-x-6" : "translate-x-0"
-                }`}
-              >
-                {dark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
-              </span>
-            </button>
-          </SettingsRow>
-        </SettingsGroup>
-
-        <SettingsGroup title="Reading">
-          <SettingsRow label="Text size">
-            <div className="flex items-center gap-1.5">
-              {FONT_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => changeFontSize(size)}
-                  aria-label={`Text size ${size}`}
-                  aria-pressed={fontSize === size}
-                  className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-md border font-serif ${
-                    fontSize === size
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-foreground hover:bg-accent"
-                  }`}
-                  style={{ fontSize: `${Math.min(size, 20)}px` }}
-                >
-                  A
-                </button>
-              ))}
-            </div>
-          </SettingsRow>
-
-          <SettingsRow label="English font">
-            <InlineSelect
-              className="max-w-xs"
-              ariaLabel="English font"
-              value={englishFont}
-              onChange={(id) => changeEnglishFont(id as EnglishFont)}
-              triggerStyle={{ fontFamily: ENGLISH_FONT_STACKS[englishFont] }}
-              options={ENGLISH_FONTS.map((f) => ({
-                id: f.id,
-                label: f.label,
-                style: { fontFamily: ENGLISH_FONT_STACKS[f.id] },
-              }))}
-            />
-          </SettingsRow>
-
-          <SettingsRow label="Amharic font">
-            <InlineSelect
-              className="max-w-xs"
-              ariaLabel="Amharic font"
-              value={amharicFont}
-              onChange={(id) => changeAmharicFont(id as AmharicFont)}
-              triggerStyle={{ fontFamily: AMHARIC_FONT_STACKS[amharicFont] }}
-              options={AMHARIC_FONTS.map((f) => ({
-                id: f.id,
-                label: f.label,
-                style: { fontFamily: AMHARIC_FONT_STACKS[f.id] },
-              }))}
-            />
-          </SettingsRow>
-
-          <SettingsRow label="Line spacing">
-            <div className="flex items-center gap-1.5" role="group" aria-label="Line spacing">
-              {LINE_SPACINGS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => changeLineSpacing(s.id)}
-                  aria-pressed={lineSpacing === s.id}
-                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-md border text-sm font-medium ${
-                    lineSpacing === s.id
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-foreground hover:bg-accent"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </SettingsRow>
-
-          <SettingsRow label="Letter spacing">
-            <div className="flex items-center gap-1.5" role="group" aria-label="Letter spacing">
-              {LETTER_SPACINGS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => changeLetterSpacing(s.id)}
-                  aria-pressed={letterSpacing === s.id}
-                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-md border text-sm font-medium ${
-                    letterSpacing === s.id
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-foreground hover:bg-accent"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </SettingsRow>
-        </SettingsGroup>
-
         <SettingsGroup title="Account">
           <div className="px-4 py-4">
             <AccountSection />
@@ -297,14 +115,62 @@ export function SettingsClient() {
             label="Local study data"
             description="Bookmarks, highlights, and notes saved on this device."
           >
-            <button
-              type="button"
-              onClick={clearLocalData}
-              className="focus-carbon flex shrink-0 items-center gap-1.5 rounded-md border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Clear
-            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="destructive" size="sm" className="shrink-0">
+                  <Trash2 className="h-3.5 w-3.5" /> Clear
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear local study data?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes all bookmarks, highlights and notes on this device. This can&apos;t
+                    be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={clearLocalData}
+                    className="border border-rule bg-transparent text-ink hover:border-signal hover:bg-field-conflict hover:text-signal"
+                  >
+                    Clear
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </SettingsRow>
+
+          <SettingsRow
+            label="Offline reading"
+            description={
+              downloadedAt
+                ? `Every verse and study note is saved on this device (last updated ${new Date(downloadedAt).toLocaleDateString()}).`
+                : "Download every verse and study note so the app works with no connection."
+            }
+          >
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={downloading || translations.length === 0}
+              onClick={() => startDownload(translations.map((t) => t.id))}
+              className="shrink-0"
+            >
+              {downloadedAt && !downloading ? (
+                <Check className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {downloading && progress
+                ? `Downloading… ${progress.done}/${progress.total}`
+                : downloadedAt
+                  ? "Re-download"
+                  : "Download for offline"}
+            </Button>
+          </SettingsRow>
+          {downloadError && <p className="px-4 pb-4 text-xs text-destructive">{downloadError}</p>}
         </SettingsGroup>
 
         <SettingsGroup title="About">
@@ -325,10 +191,13 @@ export function SettingsClient() {
 
           <div className="flex flex-col gap-1.5 px-4 py-4 text-xs text-muted-foreground">
             <p className="mb-2 font-medium text-foreground">Sources &amp; credits</p>
-            <p>
-              Amharic Bible text © United Bible Societies, used for non-commercial personal study.
-            </p>
-            <p>Cross-references from OpenBible.info, licensed CC BY.</p>
+            <p className="font-medium text-foreground">Bible versions</p>
+            <p>Amharic Bible (1954) © United Bible Societies, used for non-commercial personal study.</p>
+            <p>Berean Standard Bible (BSB), public domain.</p>
+            <p className="mt-2 font-medium text-foreground">Commentary</p>
+            <p>Matthew Henry&apos;s Concise Commentary, public domain.</p>
+            <p className="mt-2 font-medium text-foreground">Cross-references</p>
+            <p>From OpenBible.info, licensed CC BY.</p>
           </div>
 
           <div className="flex flex-col gap-3 px-4 py-4">

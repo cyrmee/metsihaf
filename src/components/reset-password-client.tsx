@@ -78,7 +78,7 @@ export function ResetPasswordClient() {
           </p>
           <Link
             href="/settings"
-            className="focus-carbon mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="focus-editorial mt-6 inline-flex items-center justify-center bg-signal px-4 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
           >
             Go to Settings
           </Link>
@@ -97,13 +97,13 @@ export function ResetPasswordClient() {
                 placeholder="New password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="focus-carbon w-full rounded-md border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
+                className="focus-editorial w-full border border-[#b8b4aa] bg-paper-white px-3 py-2 pr-9 text-sm text-ink"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="focus-carbon absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
+                className="focus-editorial absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted hover:text-ink"
               >
                 {showPassword ? (
                   <EyeOff className="h-3.5 w-3.5" />
@@ -119,12 +119,12 @@ export function ResetPasswordClient() {
               placeholder="Confirm new password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="focus-carbon w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
+              className="focus-editorial w-full border border-[#b8b4aa] bg-paper-white px-3 py-2 text-sm text-ink"
             />
             <button
               type="submit"
               disabled={busy}
-              className="focus-carbon mt-1 flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="focus-editorial mt-1 flex items-center justify-center gap-1.5 bg-signal px-3 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover disabled:opacity-50"
             >
               <KeyRound className="h-3.5 w-3.5" /> Set new password
             </button>
@@ -141,7 +141,7 @@ export function ResetPasswordClient() {
           <button
             type="button"
             onClick={() => router.replace("/settings")}
-            className="focus-carbon mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="focus-editorial mt-6 inline-flex items-center justify-center bg-signal px-4 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
           >
             Continue to Settings
           </button>

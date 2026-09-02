@@ -19,7 +19,6 @@ import {
   Link2,
   NotebookPen,
   Share2,
-  X,
 } from "lucide-react";
 import type { ChapterData, Translation } from "@/lib/bible";
 import { BOOK_BY_ID, bookName, type BibleBook } from "@/data/books";
@@ -50,35 +49,17 @@ import {
 import { useStoreVersion } from "@/lib/use-store-version";
 import { useTranslations } from "@/lib/use-translations";
 
-// Light theme: an actual highlighter wash behind the text (text stays the
-// normal ink color). Dark theme keeps the old colored-text treatment — a
-// solid marker wash reads poorly against a dark page.
+// A highlighter wash behind the text — text stays the normal ink color.
 const HIGHLIGHT_CLASSES: Record<HighlightColor, string> = {
-  yellow: "bg-highlight-yellow/25 text-foreground dark:bg-transparent dark:text-highlight-yellow",
-  red: "bg-highlight-red/20 text-foreground dark:bg-transparent dark:text-highlight-red",
-  orange: "bg-highlight-orange/20 text-foreground dark:bg-transparent dark:text-highlight-orange",
-  brown: "bg-highlight-brown/20 text-foreground dark:bg-transparent dark:text-highlight-brown",
-  green: "bg-highlight-green/20 text-foreground dark:bg-transparent dark:text-highlight-green",
-  teal: "bg-highlight-teal/20 text-foreground dark:bg-transparent dark:text-highlight-teal",
-  blue: "bg-highlight-blue/20 text-foreground dark:bg-transparent dark:text-highlight-blue",
-  purple: "bg-highlight-purple/20 text-foreground dark:bg-transparent dark:text-highlight-purple",
-  pink: "bg-highlight-pink/20 text-foreground dark:bg-transparent dark:text-highlight-pink",
-};
-
-// Dark theme highlights work by tinting the text instead of washing the
-// background, but red-letter text is already tinted (red) — so when a
-// highlighted verse contains red letters, give just that red-letter span a
-// background wash instead, matching how light mode shows the highlight.
-const RED_LETTER_DARK_HIGHLIGHT_BG: Record<HighlightColor, string> = {
-  yellow: "dark:bg-highlight-yellow/20",
-  red: "dark:bg-highlight-red/20",
-  orange: "dark:bg-highlight-orange/20",
-  brown: "dark:bg-highlight-brown/20",
-  green: "dark:bg-highlight-green/20",
-  teal: "dark:bg-highlight-teal/20",
-  blue: "dark:bg-highlight-blue/20",
-  purple: "dark:bg-highlight-purple/20",
-  pink: "dark:bg-highlight-pink/20",
+  yellow: "bg-highlight-yellow/25 text-foreground",
+  red: "bg-highlight-red/20 text-foreground",
+  orange: "bg-highlight-orange/20 text-foreground",
+  brown: "bg-highlight-brown/20 text-foreground",
+  green: "bg-highlight-green/20 text-foreground",
+  teal: "bg-highlight-teal/20 text-foreground",
+  blue: "bg-highlight-blue/20 text-foreground",
+  purple: "bg-highlight-purple/20 text-foreground",
+  pink: "bg-highlight-pink/20 text-foreground",
 };
 
 const HIGHLIGHT_SWATCHES: { color: HighlightColor; className: string; label: string }[] = [
@@ -185,10 +166,9 @@ function renderVerseText(
   text: string,
   redLetter?: [number, number][],
   footnotes?: { at: number }[],
-  highlightColor?: HighlightColor,
 ): ReactNode {
   if (!redLetter?.length && !footnotes?.length) return text;
-  const { after } = renderVerseTextParts(text, redLetter, footnotes, highlightColor, 0);
+  const { after } = renderVerseTextParts(text, redLetter, footnotes, 0);
   return after;
 }
 
@@ -202,7 +182,6 @@ function renderVerseTextParts(
   text: string,
   redLetter: [number, number][] | undefined,
   footnotes: { at: number }[] | undefined,
-  highlightColor: HighlightColor | undefined,
   superscriptionEnd: number,
 ): { before: ReactNode[]; after: ReactNode[] } {
   type Event =
@@ -232,10 +211,7 @@ function renderVerseTextParts(
     const segment = text.slice(cursor, end);
     nodes.push(
       redDepth > 0 ? (
-        <span
-          key={key++}
-          className={`text-vermilion ${highlightColor ? RED_LETTER_DARK_HIGHLIGHT_BG[highlightColor] : ""}`}
-        >
+        <span key={key++} className="text-vermilion">
           {segment}
         </span>
       ) : (
@@ -320,10 +296,16 @@ function SectionHeading({
 interface ChapterTextProps {
   data: ChapterData;
   fontSize: number;
-  /** Enable selection / study actions (disabled in compact compare cells). */
+  /** Enable selection / study actions. */
   interactive?: boolean;
   lineSpacing?: LineSpacing;
   letterSpacing?: LetterSpacing;
+  /**
+   * Fires with a reference like "Genesis 1:1-3" while a selection is active,
+   * and null once it's cleared — so the reading card's index row can show
+   * what's selected instead of the toolbar carrying its own label.
+   */
+  onSelectionChange?: (label: string | null) => void;
 }
 
 export interface ChapterTextHandle {
@@ -333,13 +315,27 @@ export interface ChapterTextHandle {
 
 /** Renders a chapter's verses with highlight + study action support. */
 export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(function ChapterText(
-  { data, fontSize, interactive = true, lineSpacing = "normal", letterSpacing = "normal" },
+  {
+    data,
+    fontSize,
+    interactive = true,
+    lineSpacing = "normal",
+    letterSpacing = "normal",
+    onSelectionChange,
+  },
   ref,
 ) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [openRefsVerse, setOpenRefsVerse] = useState<number | null>(null);
-  const [openNotesVerse, setOpenNotesVerse] = useState<number | null>(null);
-  const [openStudyNoteVerse, setOpenStudyNoteVerse] = useState<number | null>(null);
+  // A single slot for whichever of cross-refs/footnotes/study-note is open
+  // from an inline verse mark, so opening one always closes another instead
+  // of letting them stack.
+  const [openPanel, setOpenPanel] = useState<{
+    kind: "refs" | "notes" | "study";
+    verse: number;
+  } | null>(null);
+  const openRefsVerse = openPanel?.kind === "refs" ? openPanel.verse : null;
+  const openNotesVerse = openPanel?.kind === "notes" ? openPanel.verse : null;
+  const openStudyNoteVerse = openPanel?.kind === "study" ? openPanel.verse : null;
   const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
   const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
   const storeVersion = useStoreVersion();
@@ -436,11 +432,13 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setOpenRefsVerse(verse);
+            setOpenPanel((p) =>
+              p?.kind === "refs" && p.verse === verse ? null : { kind: "refs", verse },
+            );
           }}
           aria-label="Open cross-references"
           title="Cross-references"
-          className="focus-carbon ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
+          className="focus-editorial ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
         >
           <Link2 className="h-3.5 w-3.5" />
         </button>
@@ -450,11 +448,13 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setOpenNotesVerse(verse);
+            setOpenPanel((p) =>
+              p?.kind === "notes" && p.verse === verse ? null : { kind: "notes", verse },
+            );
           }}
           aria-label="Open footnotes"
           title="Footnotes"
-          className="focus-carbon ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
+          className="focus-editorial ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
         >
           <Asterisk className="h-3.5 w-3.5" />
         </button>
@@ -464,11 +464,13 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setOpenStudyNoteVerse(verse);
+            setOpenPanel((p) =>
+              p?.kind === "study" && p.verse === verse ? null : { kind: "study", verse },
+            );
           }}
           aria-label="Open study note"
           title="Study note"
-          className="focus-carbon ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
+          className="focus-editorial ml-1.5 inline-flex h-4 w-4 items-center justify-center align-baseline text-muted-foreground hover:text-primary"
         >
           <BookOpen className="h-3.5 w-3.5" />
         </button>
@@ -509,21 +511,10 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                 const isSelected = selected.has(v.verse);
                 const supLen = psalmSuperscriptionLength(data.book, data.chapter, v.verse, v.text);
                 const { before, after } = supLen
-                  ? renderVerseTextParts(
-                      v.text,
-                      v.redLetter,
-                      v.footnotes,
-                      verseHighlight(v.verse)?.color,
-                      supLen,
-                    )
+                  ? renderVerseTextParts(v.text, v.redLetter, v.footnotes, supLen)
                   : {
                       before: [],
-                      after: renderVerseText(
-                        v.text,
-                        v.redLetter,
-                        v.footnotes,
-                        verseHighlight(v.verse)?.color,
-                      ),
+                      after: renderVerseText(v.text, v.redLetter, v.footnotes),
                     };
                 return (
                   <Fragment key={v.verse}>
@@ -555,18 +546,15 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
                       key={v.verse}
                       id={`v${v.verse}`}
                       onClick={() => toggleVerse(v.verse)}
-                      className={`mr-2 ${interactive ? "cursor-pointer" : ""} ${verseClass(v.verse, isSelected)}`}
+                      className={`mr-2 ${interactive ? "cursor-pointer" : ""}`}
                     >
                       {extraAnchors(v)}
                       <sup className="mr-1 select-none text-[0.65em] font-semibold text-ochre">
                         {v.label ?? v.verse}
                       </sup>
-                      {renderVerseText(
-                        v.text,
-                        v.redLetter,
-                        v.footnotes,
-                        verseHighlight(v.verse)?.color,
-                      )}{" "}
+                      <span className={verseClass(v.verse, isSelected)}>
+                        {renderVerseText(v.text, v.redLetter, v.footnotes)}
+                      </span>{" "}
                       {marks(v.verse, ref)}
                     </span>
                   );
@@ -586,6 +574,8 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           verses={data.verses}
           selected={selected}
           onClear={() => setSelected(new Set())}
+          onSelectionLabelChange={onSelectionChange}
+          fontSize={fontSize}
         />
       )}
 
@@ -597,7 +587,8 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           translation={data.translation}
           refs={data.verses.find((v) => v.verse === openRefsVerse)?.refs ?? []}
           open={openRefsVerse !== null}
-          onClose={() => setOpenRefsVerse(null)}
+          onClose={() => setOpenPanel(null)}
+          fontSize={fontSize}
         />
       )}
 
@@ -608,7 +599,8 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           }`}
           footnotes={data.verses.find((v) => v.verse === openNotesVerse)?.footnotes ?? []}
           open={openNotesVerse !== null}
-          onClose={() => setOpenNotesVerse(null)}
+          onClose={() => setOpenPanel(null)}
+          fontSize={fontSize}
         />
       )}
 
@@ -624,7 +616,8 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           })()}
           note={data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNote ?? null}
           open={openStudyNoteVerse !== null}
-          onClose={() => setOpenStudyNoteVerse(null)}
+          onClose={() => setOpenPanel(null)}
+          fontSize={fontSize}
         />
       )}
     </>
@@ -660,12 +653,15 @@ interface SelectionToolbarProps {
   verses: ChapterData["verses"];
   selected: Set<number>;
   onClear: () => void;
+  onSelectionLabelChange?: ((label: string | null) => void) | undefined;
+  fontSize: number;
 }
 
 /**
- * Floating action bar for the current verse selection. Fixed to the
- * viewport, so it never reflows the reading column underneath it — and it
- * works the same whether one verse or several are selected.
+ * Action bar for the current verse selection. Below `xl` it floats above
+ * the viewport's bottom edge; at `xl`+ it docks beside the reading card as
+ * a narrow vertical rail (see the outer positioning classes below) — either
+ * way it works the same whether one verse or several are selected.
  */
 function SelectionToolbar({
   bookId,
@@ -675,13 +671,15 @@ function SelectionToolbar({
   verses,
   selected,
   onClear,
+  onSelectionLabelChange,
+  fontSize,
 }: SelectionToolbarProps) {
   const storeVersion = useStoreVersion();
   void storeVersion;
   const [panel, setPanel] = useState<"note" | null>(null);
-  const [refsOpen, setRefsOpen] = useState(false);
-  const [notesOpen, setNotesOpen] = useState(false);
-  const [studyNoteOpen, setStudyNoteOpen] = useState(false);
+  // A single slot for whichever of cross-refs/footnotes/study-note is open,
+  // so opening one always closes another instead of letting them stack.
+  const [refPanel, setRefPanel] = useState<"refs" | "notes" | "study" | null>(null);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -697,14 +695,10 @@ function SelectionToolbar({
     setNoteDraft(null);
     if (selectedList.length === 0) {
       setPanel(null);
-      setRefsOpen(false);
-      setNotesOpen(false);
-      setStudyNoteOpen(false);
+      setRefPanel(null);
     }
     if (selectedList.length !== 1) {
-      setRefsOpen(false);
-      setNotesOpen(false);
-      setStudyNoteOpen(false);
+      setRefPanel(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
@@ -719,6 +713,12 @@ function SelectionToolbar({
   const label = `${bookName(book, translation.language)} ${chapter}:${formatVerseRanges(
     selectedList.map((v) => v.verse),
   )}`;
+
+  useEffect(() => {
+    onSelectionLabelChange?.(label);
+    return () => onSelectionLabelChange?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onSelectionLabelChange is a setter, stable enough not to need re-running the effect on identity change
+  }, [label]);
 
   const allBookmarked = selectedList.every((v) => isBookmarked(refs(v.verse)));
 
@@ -787,10 +787,33 @@ function SelectionToolbar({
       <div
         className={
           "pointer-events-none fixed inset-x-0 z-40 flex justify-center px-3 " +
-          "bottom-[calc(var(--nav-pill-clearance)+0.75rem+env(safe-area-inset-bottom))] md:bottom-6 md:px-4"
+          "bottom-[calc(var(--nav-bar-height)+0.75rem+env(safe-area-inset-bottom))] md:bottom-6 md:px-4 " +
+          // At xl+ this is `position: fixed` at a constant point in the
+          // *viewport* — not docked to the card via scroll-tracking sticky
+          // positioning — so it never drifts during scroll, same as the
+          // cross-ref/footnote/study-note panels (see reference-panel.tsx).
+          // `right` is measured from the reading card's own left edge
+          // (card is centered via `mx-auto max-w-3xl px-4`, so its border
+          // sits at `50% - 24rem + 1rem`) rather than a translate off the
+          // card itself, so this works the same regardless of the rail's
+          // own width (icons-only vs. the wider note editor). The 2.25rem
+          // gap and the `top` value both match the cross-ref/footnote/
+          // study-note panels on the card's other side (reference-panel.tsx)
+          // — level with the reading card itself, below the book/chapter
+          // selector row, not the masthead alone.
+          "xl:fixed xl:inset-x-auto xl:right-[calc(50%+25.25rem)] xl:top-[11.5rem] xl:bottom-auto xl:left-auto xl:block xl:px-0"
         }
       >
-        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-card pointer-events-auto shadow-lg duration-200">
+        <div
+          className={`relative w-full max-w-3xl border border-ink bg-field-inset pointer-events-auto shadow-[10px_10px_0_rgba(23,32,29,0.11)] xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto xl:[mask-image:linear-gradient(to_bottom,black_calc(100%-1.5rem),transparent)] xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden ${
+            panel === "note" ? "xl:w-64 xl:max-w-none" : "xl:w-16 xl:max-w-none"
+          }`}
+        >
+          {/* A thin bridge line reading the rail as attached to the card beside it, not a floating panel. */}
+          <span
+            aria-hidden="true"
+            className="hidden xl:absolute xl:top-0 xl:-right-9 xl:block xl:h-px xl:w-9 xl:bg-ink"
+          />
           {panel === "note" && selectedList.length > 0 && (
             <div className="py-2.5 pr-3 pl-4">
               <p className="mb-1.5 text-xs font-medium text-muted-foreground">
@@ -808,10 +831,10 @@ function SelectionToolbar({
                 onChange={(e) => setNoteDraft(e.target.value)}
                 rows={2}
                 autoFocus
-                className="focus-carbon w-full rounded-md border border-input bg-background p-2 text-sm text-foreground"
+                className="focus-editorial w-full border border-[#b8b4aa] bg-paper-white p-2 text-sm text-ink"
                 placeholder="Write your note…"
               />
-              <div className="mt-1.5 flex gap-2">
+              <div className="mt-1.5 flex gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -819,14 +842,14 @@ function SelectionToolbar({
                     selectedList.forEach((v) => setNote(refs(v.verse), text));
                     setPanel(null);
                   }}
-                  className="focus-carbon rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  className="focus-editorial bg-signal px-3 py-1 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
                 >
                   Save note
                 </button>
                 <button
                   type="button"
                   onClick={() => setPanel(null)}
-                  className="focus-carbon rounded-md border border-border px-3 py-1 text-xs text-foreground hover:bg-accent"
+                  className="focus-editorial text-xs text-ink underline decoration-1 underline-offset-4 hover:text-signal"
                 >
                   Cancel
                 </button>
@@ -834,19 +857,17 @@ function SelectionToolbar({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 py-2.5 pr-3 pl-4">
-            <span className="mr-1 text-sm font-semibold text-card-foreground">{label}</span>
-
-            <div className="ml-auto flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-2 py-2.5 pr-3 pl-4 xl:flex-col xl:gap-1.5 xl:px-2 xl:py-4">
+            <div className="flex flex-wrap items-center gap-1 xl:flex xl:flex-col xl:gap-1.5">
               <button
                 type="button"
                 onClick={copyVerses}
                 aria-label="Copy verse text"
                 title="Copy"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
+                className="focus-editorial flex h-8 w-8 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
               >
                 {copied ? (
-                  <Check className="h-3.5 w-3.5 text-primary" />
+                  <Check className="h-3.5 w-3.5 text-signal" />
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
@@ -857,10 +878,10 @@ function SelectionToolbar({
                 onClick={shareVerses}
                 aria-label="Share verse link"
                 title="Share"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
+                className="focus-editorial flex h-8 w-8 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
               >
                 {linkCopied ? (
-                  <Check className="h-3.5 w-3.5 text-primary" />
+                  <Check className="h-3.5 w-3.5 text-signal" />
                 ) : (
                   <Share2 className="h-3.5 w-3.5" />
                 )}
@@ -871,15 +892,13 @@ function SelectionToolbar({
                 onClick={toggleBookmarks}
                 aria-label={allBookmarked ? "Remove bookmark" : "Bookmark"}
                 title="Bookmark"
-                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-md border ${
+                className={`focus-editorial flex h-8 w-8 items-center justify-center border ${
                   allBookmarked
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border text-foreground hover:bg-accent"
+                    ? "border-signal bg-signal text-paper-white"
+                    : "border-ink text-ink hover:bg-ink hover:text-paper-white"
                 }`}
               >
-                <Bookmark
-                  className={`h-3.5 w-3.5 ${allBookmarked ? "fill-primary-foreground" : ""}`}
-                />
+                <Bookmark className={`h-3.5 w-3.5 ${allBookmarked ? "fill-paper-white" : ""}`} />
               </button>
 
               <button
@@ -887,10 +906,10 @@ function SelectionToolbar({
                 onClick={() => setPanel(panel === "note" ? null : "note")}
                 aria-label="Add or edit note"
                 title="Note"
-                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-md border disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`focus-editorial flex h-8 w-8 items-center justify-center border disabled:cursor-not-allowed disabled:opacity-40 ${
                   panel === "note"
-                    ? "border-primary bg-accent text-primary"
-                    : "border-border text-foreground hover:bg-accent"
+                    ? "border-signal bg-signal text-paper-white"
+                    : "border-ink text-ink hover:bg-ink hover:text-paper-white"
                 }`}
               >
                 <NotebookPen className="h-3.5 w-3.5" />
@@ -899,10 +918,14 @@ function SelectionToolbar({
               <button
                 type="button"
                 disabled={!single || single.refs.length === 0}
-                onClick={() => setRefsOpen(true)}
+                onClick={() => setRefPanel(refPanel === "refs" ? null : "refs")}
                 aria-label="Cross-references"
                 title="Cross-references"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className={`focus-editorial flex h-8 w-8 items-center justify-center border disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink ${
+                  refPanel === "refs"
+                    ? "border-signal bg-signal text-paper-white"
+                    : "border-ink text-ink hover:bg-ink hover:text-paper-white"
+                }`}
               >
                 <Link2 className="h-3.5 w-3.5" />
               </button>
@@ -910,10 +933,14 @@ function SelectionToolbar({
               <button
                 type="button"
                 disabled={!single || (single.footnotes?.length ?? 0) === 0}
-                onClick={() => setNotesOpen(true)}
+                onClick={() => setRefPanel(refPanel === "notes" ? null : "notes")}
                 aria-label="Footnotes"
                 title="Footnotes"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className={`focus-editorial flex h-8 w-8 items-center justify-center border disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink ${
+                  refPanel === "notes"
+                    ? "border-signal bg-signal text-paper-white"
+                    : "border-ink text-ink hover:bg-ink hover:text-paper-white"
+                }`}
               >
                 <Asterisk className="h-3.5 w-3.5" />
               </button>
@@ -921,57 +948,56 @@ function SelectionToolbar({
               <button
                 type="button"
                 disabled={!single?.studyNote}
-                onClick={() => setStudyNoteOpen(true)}
+                onClick={() => setRefPanel(refPanel === "study" ? null : "study")}
                 aria-label="Study note"
                 title="Study note"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className={`focus-editorial flex h-8 w-8 items-center justify-center border disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink ${
+                  refPanel === "study"
+                    ? "border-signal bg-signal text-paper-white"
+                    : "border-ink text-ink hover:bg-ink hover:text-paper-white"
+                }`}
               >
                 <BookOpen className="h-3.5 w-3.5" />
               </button>
+            </div>
+          </div>
 
-              <div
-                className="ml-1.5 flex items-center gap-1.5"
-                role="group"
-                aria-label="Highlight color"
-              >
-                {HIGHLIGHT_SWATCHES.map((s) => {
-                  const active = selectedList.every(
-                    (v) => getHighlight(hlRefs(v.verse))?.color === s.color,
-                  );
-                  return (
-                    <button
-                      key={s.color}
-                      type="button"
-                      title={s.label}
-                      aria-label={`Highlight ${s.label}`}
-                      onClick={() => applyHighlight(s.color)}
-                      className={`focus-carbon h-6 w-6 rounded-full border ${s.className} ${
-                        active ? "ring-2 ring-primary" : "border-border"
-                      }`}
-                    />
-                  );
-                })}
-                {anyHighlighted && (
+          <div className="flex items-center gap-2 border-t border-ink py-2 pr-3 pl-4 xl:flex-col xl:items-center xl:gap-2 xl:px-2 xl:py-3">
+            <div
+              className="flex flex-1 items-center gap-2 overflow-x-auto scroll-px-4 [mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)] [scrollbar-width:none] xl:flex xl:flex-col xl:[mask-image:none] xl:overflow-visible [&::-webkit-scrollbar]:hidden"
+              role="group"
+              aria-label="Highlight color"
+            >
+              {HIGHLIGHT_SWATCHES.map((s) => {
+                const active = selectedList.every(
+                  (v) => getHighlight(hlRefs(v.verse))?.color === s.color,
+                );
+                return (
                   <button
+                    key={s.color}
                     type="button"
-                    onClick={clearHighlights}
-                    className="focus-carbon px-1 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-
+                    title={s.label}
+                    aria-label={`Highlight ${s.label}`}
+                    onClick={() => applyHighlight(s.color)}
+                    className={`focus-editorial h-9 w-9 shrink-0 border-2 ${s.className} ${
+                      active
+                        ? "border-ink outline outline-2 outline-offset-2 outline-signal"
+                        : "border-rule"
+                    }`}
+                  />
+                );
+              })}
+              <span aria-hidden="true" className="w-2 shrink-0 xl:hidden" />
+            </div>
+            {anyHighlighted && (
               <button
                 type="button"
-                onClick={onClear}
-                aria-label="Close selection"
-                title="Close"
-                className="focus-carbon ml-1.5 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground"
+                onClick={clearHighlights}
+                className="focus-editorial shrink-0 px-1.5 py-1 text-xs text-ink underline decoration-1 underline-offset-4 hover:text-signal xl:w-full xl:text-center"
               >
-                <X className="h-4 w-4" />
+                Clear
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -981,8 +1007,9 @@ function SelectionToolbar({
           sourceLabel={`${bookName(book, translation.language)} ${chapter}:${single.label ?? single.verse}`}
           translation={translation.id}
           refs={single.refs}
-          open={refsOpen}
-          onClose={() => setRefsOpen(false)}
+          open={refPanel === "refs"}
+          onClose={() => setRefPanel(null)}
+          fontSize={fontSize}
         />
       )}
 
@@ -990,8 +1017,9 @@ function SelectionToolbar({
         <FootnotesModal
           sourceLabel={`${bookName(book, translation.language)} ${chapter}:${single.label ?? single.verse}`}
           footnotes={single.footnotes ?? []}
-          open={notesOpen}
-          onClose={() => setNotesOpen(false)}
+          open={refPanel === "notes"}
+          onClose={() => setRefPanel(null)}
+          fontSize={fontSize}
         />
       )}
 
@@ -1003,8 +1031,9 @@ function SelectionToolbar({
               : (single.label ?? single.verse)
           }`}
           note={single.studyNote ?? null}
-          open={studyNoteOpen}
-          onClose={() => setStudyNoteOpen(false)}
+          open={refPanel === "study"}
+          onClose={() => setRefPanel(null)}
+          fontSize={fontSize}
         />
       )}
     </>

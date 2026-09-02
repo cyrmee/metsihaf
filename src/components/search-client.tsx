@@ -134,7 +134,7 @@ export function SearchClient() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-2 py-8 sm:px-4">
       <div className="text-center">
         <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
           Search
@@ -148,17 +148,17 @@ export function SearchClient() {
         <TranslationSwitcher value={translation} onChange={setTranslation} size="sm" />
       </div>
 
-      <form onSubmit={submit} className="mt-4 flex gap-0">
+      <form onSubmit={submit} className="mt-4 flex gap-0 border border-[#b8b4aa]">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={language === "am" ? "ኢየሱስ, ፍቅር, ጸጋ…" : "Jesus, love, grace…"}
           aria-label="Search the Bible"
-          className={`focus-carbon w-full rounded-l-md border border-r-0 border-input bg-background px-4 py-2.5 text-base text-foreground ${languageFontClass}`}
+          className={`focus-editorial w-full border-r border-[#b8b4aa] bg-paper-white px-4 py-2.5 text-base text-ink ${languageFontClass}`}
         />
         <button
           type="submit"
-          className="focus-carbon flex items-center gap-1.5 rounded-r-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="focus-editorial flex items-center gap-1.5 bg-signal px-5 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
         >
           <SearchIcon className="h-4 w-4" /> Search
         </button>
@@ -166,24 +166,22 @@ export function SearchClient() {
 
       {!hits && recent.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-center text-xs font-medium text-muted-foreground">
+          <p className="mb-2 text-center font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
             Recent searches
           </p>
           <ul className="flex flex-wrap justify-center gap-1.5">
             {recent.map((r) => (
               <li
                 key={`${r.translation}:${r.query}`}
-                className="flex items-stretch overflow-hidden rounded-md border border-border bg-card"
+                className="flex items-stretch border border-rule"
               >
                 <button
                   type="button"
                   onClick={() => runRecent(r)}
-                  className={`focus-carbon flex items-center gap-1.5 py-1.5 pr-1.5 pl-3.5 text-sm text-foreground hover:bg-accent ${LANGUAGE_FONT_CLASS[byId[r.translation]?.language ?? "en"] ?? ""}`}
+                  className={`focus-editorial flex items-center gap-1.5 py-1 pr-1.5 pl-2.5 font-mono text-[11px] text-ink uppercase hover:bg-field-neutral ${LANGUAGE_FONT_CLASS[byId[r.translation]?.language ?? "en"] ?? ""}`}
                 >
                   {r.query}
-                  <span className="text-xs text-muted-foreground">
-                    {byId[r.translation]?.id ?? r.translation}
-                  </span>
+                  <span className="text-muted">{byId[r.translation]?.id ?? r.translation}</span>
                 </button>
                 <button
                   type="button"
@@ -192,7 +190,7 @@ export function SearchClient() {
                     setRecent(getRecentSearches());
                   }}
                   aria-label={`Remove "${r.query}" from recent searches`}
-                  className="focus-carbon flex items-center border-l border-border px-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="focus-editorial flex items-center border-l border-rule px-1.5 text-muted hover:bg-field-neutral hover:text-ink"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -206,52 +204,55 @@ export function SearchClient() {
 
       {!busy && hits && (
         <div className="mt-8">
-          <p className="mb-3 text-center text-xs font-medium text-muted-foreground">
+          <p className="mb-3 text-center font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
             {hits.length} result{hits.length === 1 ? "" : "s"}
           </p>
-          <ul className="flex flex-col gap-1.5">
-            {hits.map((hit) => {
-              const parts = hit.ref.split(".");
-              const { prevRef, nextRef } = neighborRefs(hit.ref);
-              const before = prevRef ? context[prevRef] : null;
-              const after = context[nextRef];
-              return (
-                <li key={hit.ref}>
-                  <Link
-                    href={`/read/${parts[0] ?? "GEN"}/${parts[1] ?? "1"}#v${parts[2]}`}
-                    className="focus-carbon block rounded-md bg-card px-4 py-3 hover:bg-accent"
-                  >
-                    <span className="text-xs font-semibold text-primary">
-                      {formatRef(hit.ref, language)}
-                    </span>
-                    {before && (
-                      <p
-                        className={`mt-1 truncate text-xs text-muted-foreground/70 ${languageFontClass}`}
-                      >
-                        {before}
-                      </p>
-                    )}
-                    <p
-                      className={`mt-1 text-[0.95rem] leading-relaxed text-foreground ${languageFontClass}`}
+          {hits.length > 0 && (
+            <ul className="flex flex-col border border-ink">
+              {hits.map((hit, i) => {
+                const parts = hit.ref.split(".");
+                const { prevRef, nextRef } = neighborRefs(hit.ref);
+                const before = prevRef ? context[prevRef] : null;
+                const after = context[nextRef];
+                return (
+                  <li key={hit.ref} className={i > 0 ? "border-t border-rule" : ""}>
+                    <Link
+                      href={`/read/${parts[0] ?? "GEN"}/${parts[1] ?? "1"}#v${parts[2]}`}
+                      className="focus-editorial block bg-paper-white px-4 py-3 hover:bg-field-neutral"
                     >
-                      {hit.text}
-                    </p>
-                    {after && (
+                      <span className="font-mono text-[11px] font-semibold text-signal uppercase">
+                        {formatRef(hit.ref, language)}
+                      </span>
+                      {before && (
+                        <p className={`mt-1 truncate text-xs text-muted/70 ${languageFontClass}`}>
+                          {before}
+                        </p>
+                      )}
                       <p
-                        className={`mt-1 truncate text-xs text-muted-foreground/70 ${languageFontClass}`}
+                        className={`mt-1 text-[0.95rem] leading-relaxed text-foreground ${languageFontClass}`}
                       >
-                        {after}
+                        {hit.text}
                       </p>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                      {after && (
+                        <p className={`mt-1 truncate text-xs text-muted/70 ${languageFontClass}`}>
+                          {after}
+                        </p>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
           {hits.length === 0 && (
-            <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              No verses matched &ldquo;{query.trim()}&rdquo;. Try a shorter word, or check the
-              spelling.
+            <div className="flex items-center gap-4 border-t border-b border-rule py-6">
+              <span className="font-mono text-[11px] tracking-[0.06em] text-muted uppercase">
+                00
+              </span>
+              <p className="font-display text-base text-foreground">
+                No verses matched &ldquo;{query.trim()}&rdquo;. Try a shorter word, or check the
+                spelling.
+              </p>
             </div>
           )}
         </div>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
 import { BOOK_BY_ID, formatRef } from "@/data/books";
+import { ReferencePanel } from "@/components/reference-panel";
 
 async function getVerseTexts(
   translation: string,
@@ -25,6 +25,8 @@ interface CrossRefsModalProps {
   refs: string[];
   open: boolean;
   onClose: () => void;
+  /** Reader font size in px, matched to the bible text's current setting. */
+  fontSize?: number;
 }
 
 interface RefEntry {
@@ -42,6 +44,7 @@ export function CrossRefsModal({
   refs,
   open,
   onClose,
+  fontSize,
 }: CrossRefsModalProps) {
   const [entries, setEntries] = useState<RefEntry[] | null>(null);
 
@@ -68,75 +71,49 @@ export function CrossRefsModal({
     };
   }, [open, refs, translation]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-        <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center px-4 py-3">
-          <span aria-hidden="true" />
-          <div className="text-center">
-            <h2 className="font-display text-xl font-semibold text-foreground">Cross-references</h2>
-            <p className="text-xs text-muted-foreground">{sourceLabel}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="focus-carbon flex h-8 w-8 items-center justify-center justify-self-end rounded-md text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {entries === null && (
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          )}
-          {entries && entries.length === 0 && (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              No cross-references for this verse.
-            </p>
-          )}
-          {entries && (
-            <ul className="flex flex-col gap-1.5 px-3 py-2">
-              {entries.map((e) => {
-                if (!BOOK_BY_ID[e.book]) return null;
-                return (
-                  <li key={e.ref}>
-                    <Link
-                      href={`/read/${e.book}/${e.chapter}#v${e.verse}`}
-                      onClick={onClose}
-                      className="focus-carbon block rounded-md bg-card px-4 py-3 hover:bg-accent"
+    <ReferencePanel
+      title="Cross-references"
+      sourceLabel={sourceLabel}
+      open={open}
+      onClose={onClose}
+    >
+      {entries === null && (
+        <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
+      )}
+      {entries && entries.length === 0 && (
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          No cross-references for this verse.
+        </p>
+      )}
+      {entries && (
+        <ul className="flex flex-col">
+          {entries.map((e, i) => {
+            if (!BOOK_BY_ID[e.book]) return null;
+            return (
+              <li key={e.ref} className={i > 0 ? "border-t border-rule" : ""}>
+                <Link
+                  href={`/read/${e.book}/${e.chapter}#v${e.verse}`}
+                  onClick={onClose}
+                  className="focus-editorial block px-4 py-3 hover:bg-field-neutral"
+                >
+                  <span className="font-mono text-[11px] font-semibold text-signal uppercase">
+                    {formatRef(e.ref)}
+                  </span>
+                  {e.text && (
+                    <p
+                      className="font-ethiopic mt-1 leading-relaxed text-foreground"
+                      style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
                     >
-                      <span className="text-xs font-semibold text-primary">{formatRef(e.ref)}</span>
-                      {e.text && (
-                        <p className="font-ethiopic mt-1 text-[0.95rem] leading-relaxed text-foreground">
-                          {e.text}
-                        </p>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </div>
-    </>
+                      {e.text}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </ReferencePanel>
   );
 }

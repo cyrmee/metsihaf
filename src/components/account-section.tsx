@@ -33,7 +33,7 @@ export function AccountSection() {
             await signOut();
             await refresh();
           }}
-          className="focus-carbon mt-1 flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
+          className="focus-editorial mt-1 flex items-center gap-1.5 border border-ink px-3 py-2 text-xs text-ink hover:bg-ink hover:text-paper-white"
         >
           <LogOut className="h-3.5 w-3.5" /> Sign out
         </button>
@@ -91,7 +91,7 @@ export function AccountSection() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="focus-carbon rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
+          className="focus-editorial border border-[#b8b4aa] bg-paper-white px-3 py-2 text-sm text-ink"
         />
         <div className="relative">
           <input
@@ -101,13 +101,13 @@ export function AccountSection() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="focus-carbon w-full rounded-md border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
+            className="focus-editorial w-full border border-[#b8b4aa] bg-paper-white px-3 py-2 pr-9 text-sm text-ink"
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="focus-carbon absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
+            className="focus-editorial absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
           >
             {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
@@ -115,7 +115,7 @@ export function AccountSection() {
         <button
           type="submit"
           disabled={busy}
-          className="focus-carbon flex items-center justify-center gap-1.5 rounded-md border border-primary bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="focus-editorial flex items-center justify-center gap-1.5 bg-signal px-3 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover disabled:opacity-50"
         >
           <LogIn className="h-3.5 w-3.5" />
           {mode === "signIn" ? "Sign in" : "Create account"}
@@ -126,7 +126,7 @@ export function AccountSection() {
           type="button"
           onClick={forgotPassword}
           disabled={busy}
-          className="focus-carbon text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+          className="focus-editorial text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
         >
           Forgot password?
         </button>
@@ -146,7 +146,7 @@ export function AccountSection() {
           setShowPassword(false);
           setStatus(null);
         }}
-        className="focus-carbon text-xs text-primary hover:underline"
+        className="focus-editorial text-xs text-primary hover:underline"
       >
         {mode === "signIn" ? "Need an account? Sign up" : "Have an account? Sign in"}
       </button>
