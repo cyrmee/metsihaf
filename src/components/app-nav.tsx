@@ -58,9 +58,20 @@ export function AppNav() {
       className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-ink bg-paper md:top-0 md:bottom-auto md:justify-between md:border-t-0 md:border-b md:px-6 md:py-0"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <span className="hidden font-mono text-[14px] font-extrabold tracking-[0.2em] text-ink uppercase md:flex md:items-center md:gap-3 md:py-5">
-        METSIHAF
-        <span aria-hidden="true" className="h-[2px] w-8 bg-signal" />
+      <span className="hidden items-center gap-3 py-5 md:flex">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 32 32"
+          className="h-5 w-5 shrink-0"
+        >
+          <rect width="32" height="32" fill="var(--color-ink)" />
+          <rect x="6" y="7" width="9" height="18" fill="var(--color-paper-white)" />
+          <rect x="17" y="7" width="9" height="18" fill="var(--color-paper-white)" />
+          <rect x="15" y="7" width="2" height="18" fill="var(--color-signal)" />
+        </svg>
+        <span className="font-mono text-[14px] font-extrabold tracking-[0.2em] text-ink uppercase">
+          METSIHAF
+        </span>
       </span>
 
       <div className="flex w-full items-stretch justify-around md:w-auto md:justify-end md:gap-1">
