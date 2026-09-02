@@ -31,3 +31,7 @@ next-env.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code
+.claude/
+skills-lock.json
