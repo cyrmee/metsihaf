@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 import { BOOKS, bookName, type BibleBook } from "@/data/books";
 import { LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/bible";
 import { useTranslations } from "@/lib/use-translations";
@@ -41,6 +41,8 @@ export function BookChapterModal({
   const router = useRouter();
   const [selectedBook, setSelectedBook] = useState(book);
   const [selectedChapter, setSelectedChapter] = useState(chapter);
+  /** Below `md`, the two columns are shown one at a time instead of side by side. */
+  const [mobileStep, setMobileStep] = useState<"books" | "chapters">("books");
   const currentBookRef = useRef<HTMLButtonElement>(null);
   const currentChapterRef = useRef<HTMLButtonElement>(null);
   const booksColRef = useRef<HTMLDivElement>(null);
@@ -50,6 +52,7 @@ export function BookChapterModal({
     if (open) {
       setSelectedBook(book);
       setSelectedChapter(chapter);
+      setMobileStep("books");
       // Land on the book/chapter list ready to scroll, not with the search
       // box focused (which pops the keyboard on mobile before the user has
       // asked to search) — tapping the search field is how you opt into it.
@@ -95,6 +98,7 @@ export function BookChapterModal({
   const selectBook = (b: BibleBook) => {
     setSelectedBook(b);
     setSelectedChapter(1);
+    setMobileStep("chapters");
   };
 
   const pickChapter = (n: number) => {
@@ -169,25 +173,36 @@ export function BookChapterModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
-        <div className="flex items-center justify-end border-b border-border px-4 py-3">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setMobileStep("books")}
+            className={`focus-carbon flex items-center gap-1 rounded-md py-1 pr-2 pl-1 text-sm font-medium text-foreground hover:bg-accent md:hidden ${
+              mobileStep === "chapters" ? "" : "invisible"
+            }`}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {bookName(selectedBook, language)}
+          </button>
+          <div className="hidden md:block" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="flex min-h-0 flex-1 gap-3 px-3 pb-3">
           {/* Books */}
           <div
             ref={booksColRef}
-            className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card"
+            className={`min-w-0 flex-1 flex-col overflow-y-auto bg-card md:flex md:flex-[4] ${
+              mobileStep === "books" ? "flex" : "hidden"
+            }`}
             onKeyDown={(e) =>
               onColumnKeyDown(e, booksColRef, undefined, () => focusColumnEntry(chaptersColRef))
             }
@@ -199,7 +214,7 @@ export function BookChapterModal({
                 return (
                   <div key={testament} className="mb-6">
                     <h3
-                      className={`text-xs leading-4 font-semibold tracking-wider text-muted-foreground uppercase ${i === 0 ? "mb-2" : "mb-1.5"}`}
+                      className={`font-display text-sm font-medium text-muted-foreground ${i === 0 ? "mb-2" : "mb-1.5"}`}
                     >
                       {testament === "OT" ? "Old Testament" : "New Testament"}
                     </h3>
@@ -213,7 +228,7 @@ export function BookChapterModal({
                             type="button"
                             onClick={() => selectBook(b)}
                             aria-current={active ? "true" : undefined}
-                            className={`focus-carbon flex w-full items-center gap-1.5 truncate rounded-full px-2.5 py-2 text-left text-sm font-medium transition-colors ${
+                            className={`focus-carbon flex w-full items-center gap-1.5 truncate rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors ${
                               active ? "text-primary" : "text-card-foreground hover:bg-accent"
                             } ${languageFontClass}`}
                           >
@@ -237,17 +252,17 @@ export function BookChapterModal({
           {/* Chapters */}
           <div
             ref={chaptersColRef}
-            className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-card"
+            className={`min-w-0 flex-1 flex-col overflow-y-auto bg-card md:flex md:flex-[5] md:border-l md:border-border ${
+              mobileStep === "chapters" ? "flex" : "hidden"
+            }`}
             onKeyDown={(e) =>
               onColumnKeyDown(e, chaptersColRef, () => focusColumnEntry(booksColRef), undefined)
             }
           >
             <div className="px-3 pt-3 pb-2">
-              <p className="text-xs leading-4 font-semibold tracking-wider text-muted-foreground uppercase">
-                Chapters
-              </p>
+              <p className="font-display text-sm font-medium text-muted-foreground">Chapters</p>
             </div>
-            <div className="grid grid-cols-3 gap-x-1.5 gap-y-3 px-3 pb-3 sm:grid-cols-4">
+            <div className="grid grid-cols-4 gap-x-2 gap-y-3 px-3 pb-3 sm:grid-cols-5 md:grid-cols-6">
               {chapters.map((n) => {
                 const active = n === selectedChapter;
                 return (
@@ -259,7 +274,7 @@ export function BookChapterModal({
                     type="button"
                     onClick={() => pickChapter(n)}
                     aria-current={active ? "true" : undefined}
-                    className={`focus-carbon flex h-10 items-center justify-center rounded-full border text-sm font-medium ${
+                    className={`focus-carbon flex h-10 items-center justify-center rounded-md border text-sm font-medium ${
                       active
                         ? "border-primary text-primary font-semibold"
                         : "border-transparent bg-background text-foreground hover:bg-accent"

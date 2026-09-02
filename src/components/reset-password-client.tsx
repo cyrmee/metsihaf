@@ -78,7 +78,7 @@ export function ResetPasswordClient() {
           </p>
           <Link
             href="/settings"
-            className="focus-carbon mt-6 inline-flex items-center justify-center bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="focus-carbon mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Go to Settings
           </Link>
@@ -97,7 +97,7 @@ export function ResetPasswordClient() {
                 placeholder="New password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="focus-carbon w-full border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
+                className="focus-carbon w-full rounded-md border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
               />
               <button
                 type="button"
@@ -119,12 +119,12 @@ export function ResetPasswordClient() {
               placeholder="Confirm new password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="focus-carbon w-full border border-border bg-card px-3 py-2 text-sm text-foreground"
+              className="focus-carbon w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
             />
             <button
               type="submit"
               disabled={busy}
-              className="focus-carbon mt-1 flex items-center justify-center gap-1.5 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="focus-carbon mt-1 flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <KeyRound className="h-3.5 w-3.5" /> Set new password
             </button>
@@ -141,7 +141,7 @@ export function ResetPasswordClient() {
           <button
             type="button"
             onClick={() => router.replace("/settings")}
-            className="focus-carbon mt-6 inline-flex items-center justify-center bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="focus-carbon mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Continue to Settings
           </button>

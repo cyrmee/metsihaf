@@ -33,7 +33,7 @@ export function AccountSection() {
             await signOut();
             await refresh();
           }}
-          className="focus-carbon mt-1 flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
+          className="focus-carbon mt-1 flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
         >
           <LogOut className="h-3.5 w-3.5" /> Sign out
         </button>
@@ -91,7 +91,7 @@ export function AccountSection() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="focus-carbon border border-border bg-card px-3 py-2 text-sm text-foreground"
+          className="focus-carbon rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
         />
         <div className="relative">
           <input
@@ -101,7 +101,7 @@ export function AccountSection() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="focus-carbon w-full border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
+            className="focus-carbon w-full rounded-md border border-border bg-card px-3 py-2 pr-9 text-sm text-foreground"
           />
           <button
             type="button"
@@ -115,7 +115,7 @@ export function AccountSection() {
         <button
           type="submit"
           disabled={busy}
-          className="focus-carbon flex items-center justify-center gap-1.5 border border-primary bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="focus-carbon flex items-center justify-center gap-1.5 rounded-md border border-primary bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           <LogIn className="h-3.5 w-3.5" />
           {mode === "signIn" ? "Sign in" : "Create account"}

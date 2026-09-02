@@ -36,10 +36,8 @@ function useBookChapterSuffix(pathname: string): string {
 
 /**
  * A floating glass pill — icon-only at every breakpoint, bottom-center on
- * mobile and top-center on desktop, curved all the way to a full loop to
- * match the "Interlace" language used everywhere else in the app. The
- * active destination is marked in rubric red, the way a scribe flagged a
- * heading.
+ * mobile and top-center on desktop. The active destination is marked in
+ * indigo, the app's one accent.
  */
 export function AppNav() {
   const pathname = usePathname();
@@ -72,7 +70,7 @@ export function AppNav() {
       aria-label="Primary"
       className={cn(
         "fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full",
-        "border border-border/50 bg-card/10 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md",
+        "border border-border/50 bg-card/70 shadow-lg backdrop-blur-md",
         "px-2.5 py-2.5",
         "bottom-[calc(1rem+env(safe-area-inset-bottom))] md:top-4 md:bottom-auto",
       )}

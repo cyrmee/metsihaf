@@ -154,11 +154,11 @@ export function SearchClient() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={language === "am" ? "ኢየሱስ, ፍቅር, ጸጋ…" : "Jesus, love, grace…"}
           aria-label="Search the Bible"
-          className={`focus-carbon w-full border border-input bg-background px-3 py-2.5 text-base text-foreground ${languageFontClass}`}
+          className={`focus-carbon w-full rounded-l-md border border-r-0 border-input bg-background px-4 py-2.5 text-base text-foreground ${languageFontClass}`}
         />
         <button
           type="submit"
-          className="focus-carbon flex items-center gap-1.5 bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="focus-carbon flex items-center gap-1.5 rounded-r-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <SearchIcon className="h-4 w-4" /> Search
         </button>
@@ -166,16 +166,19 @@ export function SearchClient() {
 
       {!hits && recent.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+          <p className="mb-2 text-center text-xs font-medium text-muted-foreground">
             Recent searches
           </p>
           <ul className="flex flex-wrap justify-center gap-1.5">
             {recent.map((r) => (
-              <li key={`${r.translation}:${r.query}`} className="flex items-stretch">
+              <li
+                key={`${r.translation}:${r.query}`}
+                className="flex items-stretch overflow-hidden rounded-md border border-border bg-card"
+              >
                 <button
                   type="button"
                   onClick={() => runRecent(r)}
-                  className={`focus-carbon flex items-center gap-1.5 border border-border bg-card py-1.5 pr-1.5 pl-3 text-sm text-foreground hover:bg-accent ${LANGUAGE_FONT_CLASS[byId[r.translation]?.language ?? "en"] ?? ""}`}
+                  className={`focus-carbon flex items-center gap-1.5 py-1.5 pr-1.5 pl-3.5 text-sm text-foreground hover:bg-accent ${LANGUAGE_FONT_CLASS[byId[r.translation]?.language ?? "en"] ?? ""}`}
                 >
                   {r.query}
                   <span className="text-xs text-muted-foreground">
@@ -189,7 +192,7 @@ export function SearchClient() {
                     setRecent(getRecentSearches());
                   }}
                   aria-label={`Remove "${r.query}" from recent searches`}
-                  className="focus-carbon flex items-center border border-l-0 border-border bg-card px-1.5 text-muted-foreground hover:text-foreground"
+                  className="focus-carbon flex items-center border-l border-border px-2 text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -203,7 +206,7 @@ export function SearchClient() {
 
       {!busy && hits && (
         <div className="mt-8">
-          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-3 text-center text-xs font-medium text-muted-foreground">
             {hits.length} result{hits.length === 1 ? "" : "s"}
           </p>
           <ul className="flex flex-col gap-1.5">
@@ -216,7 +219,7 @@ export function SearchClient() {
                 <li key={hit.ref}>
                   <Link
                     href={`/read/${parts[0] ?? "GEN"}/${parts[1] ?? "1"}#v${parts[2]}`}
-                    className="focus-carbon block bg-card px-3 py-3 hover:bg-accent"
+                    className="focus-carbon block rounded-md bg-card px-4 py-3 hover:bg-accent"
                   >
                     <span className="text-xs font-semibold text-primary">
                       {formatRef(hit.ref, language)}
@@ -246,9 +249,10 @@ export function SearchClient() {
             })}
           </ul>
           {hits.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No verses matched that search.
-            </p>
+            <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+              No verses matched &ldquo;{query.trim()}&rdquo;. Try a shorter word, or check the
+              spelling.
+            </div>
           )}
         </div>
       )}

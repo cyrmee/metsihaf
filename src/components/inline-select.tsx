@@ -58,7 +58,7 @@ export function InlineSelect<T extends string>({
         aria-expanded={open}
         aria-label={ariaLabel}
         style={triggerStyle}
-        className={`focus-carbon flex h-8 w-full items-center justify-between gap-2 rounded-full border px-3 text-sm ${
+        className={`focus-carbon flex h-8 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm ${
           open
             ? "border-primary bg-accent text-primary"
             : "border-border bg-card text-foreground hover:bg-accent"
@@ -71,7 +71,7 @@ export function InlineSelect<T extends string>({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-40 max-h-56 overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]"
+          className="absolute top-[calc(100%+0.25rem)] right-0 left-0 z-40 max-h-56 overflow-y-auto rounded-md border border-border bg-card p-1 shadow-lg"
         >
           {options.map((opt) => {
             const active = opt.id === value;
@@ -86,10 +86,10 @@ export function InlineSelect<T extends string>({
                   setOpen(false);
                 }}
                 style={opt.style}
-                className={`focus-carbon flex w-full items-center justify-between gap-2 rounded-full border px-2.5 py-2 text-left text-sm ${
+                className={`focus-carbon flex w-full items-center justify-between gap-2 rounded-sm border border-transparent px-2.5 py-2 text-left text-sm ${
                   active
-                    ? "border-primary bg-accent text-primary"
-                    : "border-transparent text-foreground hover:border-border hover:bg-accent/60"
+                    ? "bg-accent text-primary"
+                    : "text-foreground hover:border-border hover:bg-accent/60"
                 }`}
               >
                 <span className="truncate">{opt.label}</span>

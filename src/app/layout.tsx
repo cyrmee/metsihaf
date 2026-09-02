@@ -30,8 +30,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfc" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f4f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1e26" },
   ],
   colorScheme: "light dark",
 };
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="flex min-h-screen flex-col pt-0 pb-28 md:pt-28 md:pb-0">
               <AppNav />
               <main className="flex-1">{children}</main>
-              <footer className="pt-6 pb-4">
+              <footer className="border-t border-border pt-6 pb-4">
                 <p className="mx-auto max-w-6xl px-4 text-center text-xs text-muted-foreground">
                   Amharic Bible text © United Bible Societies, used for non-commercial personal
                   study.

@@ -49,7 +49,7 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        className={`focus-carbon flex items-center justify-center gap-1.5 rounded-full border border-border bg-card font-medium text-foreground transition-colors hover:bg-accent ${
+        className={`focus-carbon flex items-center justify-center gap-1.5 rounded-md border border-border bg-card font-medium text-foreground transition-colors hover:bg-accent ${
           size === "sm" ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm"
         }`}
       >
@@ -57,12 +57,13 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
         <ChevronDown className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} />
       </DialogTrigger>
       <DialogContent className="max-w-sm gap-0 p-0">
-        <DialogHeader className="px-4 py-3.5 text-center">
-          <DialogTitle className="text-base">Choose a translation</DialogTitle>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Choose a translation</DialogTitle>
           <DialogDescription>Pick a language, then a version.</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col items-center px-4 pb-3">
+        <div className="flex items-center justify-between gap-3 px-4 pt-14 pb-3">
+          <span className="text-sm font-medium text-foreground">Language</span>
           <div className="w-full max-w-[13rem]">
             <InlineSelect
               ariaLabel="Language"
@@ -71,6 +72,10 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
               options={languages.map((l) => ({ id: l, label: LANGUAGE_LABELS[l] ?? l }))}
             />
           </div>
+        </div>
+
+        <div className="border-t border-border px-4 pt-3 pb-1.5 text-sm font-medium text-foreground">
+          Version
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto px-1 pb-1">
@@ -85,21 +90,15 @@ export function TranslationSwitcher({ value, onChange, size = "md" }: Translatio
                   onChange(t.id);
                   setOpen(false);
                 }}
-                className={`focus-carbon flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left transition-colors ${
-                  active
-                    ? "border-primary bg-accent"
-                    : "border-transparent hover:border-border hover:bg-accent/60"
-                }`}
+                className="focus-carbon flex w-full items-center justify-between gap-3 rounded-md border border-transparent px-4 py-2.5 text-left transition-colors hover:border-border hover:bg-accent/60"
               >
                 <span>
-                  <span
-                    className={`block text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}
-                  >
+                  <span className="block text-sm font-medium text-foreground">
                     {t.id}
                     {TRANSLATION_NAMES[t.id] && (
                       <span className="font-normal text-muted-foreground">
                         {" "}
-                        — {TRANSLATION_NAMES[t.id]}
+                        ({TRANSLATION_NAMES[t.id]})
                       </span>
                     )}
                   </span>

@@ -5,24 +5,22 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system: "Interlace" — drawn from the knotted, curling borders of
- * Ethiopian illuminated manuscripts and processional crosses, where a
- * single continuous line loops back on itself with no sharp break. Every
- * surface in the app is soft and rounded — frosted "vellum glass" panels
- * (bg-card/10, backdrop-blur) that curve like a loop of interlace, with
- * the floating nav and small controls pulled all the way to full pills.
- * The active nav item — and every accent in the app — picks up the
- * reader's chosen rubric color (Settings → Theme color).
+ * Design system: "Codex" — an old scripture volume, not a border pattern.
+ * Solid paper surfaces (no blur, no glass), a deep indigo ink for every
+ * interactive accent, ochre reserved for reference numerals, and
+ * vermilion reserved for red-letter text. Chrome is quiet — hairline
+ * borders, modest radii — so the reading column stays the one thing in
+ * the room with any presence.
  */
 
 @theme inline {
-  --radius-sm: 0.625rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 1.75rem;
-  --radius-3xl: 2rem;
-  --radius-4xl: 2.5rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.25rem;
+  --radius-4xl: 1.5rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -66,42 +64,46 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Noto Serif Ethiopic", ui-serif, Georgia, serif;
-  --font-ethiopic: "Noto Serif Ethiopic", "Source Serif 4", serif;
-  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Literata", "Noto Serif Ethiopic", ui-serif, Georgia, serif;
+  --font-ethiopic: "Noto Serif Ethiopic", "Literata", serif;
+  --font-display: "Source Serif 4", "Literata", ui-serif, Georgia, serif;
+  --color-ochre: var(--ochre);
+  --color-vermilion: var(--vermilion);
 }
 
 :root {
-  --radius: 1.25rem;
+  --radius: 0.5rem;
   /* Floating pill nav footprint on mobile (1rem offset + ~3rem pill) plus a clear gap above it. */
   --nav-pill-clearance: 5.5rem;
-  --top-bar-h: 48px;
-  /* Page (light) — a plain white manuscript page, no warm cast */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.17 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.17 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.17 0 0);
-  /* Rubric — default red; swapped by the theme-color overrides below */
-  --primary: oklch(0.47 0.17 29);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0 0);
-  --secondary-foreground: oklch(0.17 0 0);
-  --muted: oklch(0.95 0 0);
-  --muted-foreground: oklch(0.46 0 0);
-  --accent: oklch(0.94 0 0);
-  --accent-foreground: oklch(0.2 0 0);
-  --destructive: oklch(0.5 0.17 350);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.82 0 0);
-  --ring: oklch(0.47 0.17 29);
+  /* Page (light) — a cool stone paper, no warm cream cast */
+  --background: oklch(0.975 0.004 240);
+  --foreground: oklch(0.19 0.012 260);
+  --card: oklch(0.99 0.002 240);
+  --card-foreground: oklch(0.19 0.012 260);
+  --popover: oklch(0.99 0.002 240);
+  --popover-foreground: oklch(0.19 0.012 260);
+  /* Indigo ink — the app's one interactive accent */
+  --primary: oklch(0.33 0.1 265);
+  --primary-foreground: oklch(0.98 0.004 240);
+  --secondary: oklch(0.94 0.006 240);
+  --secondary-foreground: oklch(0.19 0.012 260);
+  --muted: oklch(0.94 0.006 240);
+  --muted-foreground: oklch(0.45 0.014 260);
+  --accent: oklch(0.92 0.01 250);
+  --accent-foreground: oklch(0.22 0.014 260);
+  --destructive: oklch(0.5 0.17 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.88 0.006 240);
+  --input: oklch(0.8 0.008 240);
+  --ring: oklch(0.33 0.1 265);
+  /* Reference numerals (verse numbers, cross-ref markers) — old-gold, used nowhere else */
+  --ochre: oklch(0.6 0.11 75);
+  /* Red-letter text — functional only, never a UI accent */
+  --vermilion: oklch(0.5 0.16 25);
   /*
    * Verse highlight colors — applied as font color, not a background tint.
-   * Kept visibly more saturated than any theme-color swatch below (all of
-   * which stay under ~0.17 chroma) and off their hues, so a highlight never
-   * reads as "the app accent" no matter which theme color is active.
+   * Kept visibly more saturated than the app accents and off their hues,
+   * so a highlight never reads as "the app accent".
    */
   --highlight-yellow: oklch(0.58 0.19 92);
   --highlight-red: oklch(0.5 0.22 20);
@@ -112,47 +114,44 @@
   --highlight-blue: oklch(0.5 0.16 225);
   --highlight-purple: oklch(0.5 0.18 315);
   --highlight-pink: oklch(0.55 0.2 350);
-  --chart-1: oklch(0.47 0.17 29);
-  --chart-2: oklch(0.61 0.17 150);
-  --chart-3: oklch(0.83 0.15 90);
-  --chart-4: oklch(0.55 0.15 250);
-  --chart-5: oklch(0.7 0.13 80);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.17 0 0);
-  --sidebar-primary: oklch(0.47 0.17 29);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0 0);
-  --sidebar-accent-foreground: oklch(0.17 0 0);
-  --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.47 0.17 29);
+  --chart-1: oklch(0.33 0.1 265);
+  --chart-2: oklch(0.6 0.11 75);
+  --chart-3: oklch(0.5 0.16 25);
+  --chart-4: oklch(0.55 0.13 205);
+  --chart-5: oklch(0.48 0.15 155);
+  --sidebar: oklch(0.99 0.002 240);
+  --sidebar-foreground: oklch(0.19 0.012 260);
+  --sidebar-primary: oklch(0.33 0.1 265);
+  --sidebar-primary-foreground: oklch(0.98 0.004 240);
+  --sidebar-accent: oklch(0.94 0.006 240);
+  --sidebar-accent-foreground: oklch(0.19 0.012 260);
+  --sidebar-border: oklch(0.88 0.006 240);
+  --sidebar-ring: oklch(0.33 0.1 265);
 }
 
-/*
- * Rubric red is the app's one accent — the ink a scribe used to flag a
- * heading in a manuscript. No longer user-selectable (see Settings).
- */
-
 .dark {
-  /* AMOLED black — true neutral black background, so OLED screens turn those pixels fully off. */
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.95 0.01 75);
-  --card: oklch(0.05 0 0);
-  --card-foreground: oklch(0.95 0.01 75);
-  --popover: oklch(0.05 0 0);
-  --popover-foreground: oklch(0.95 0.01 75);
-  --primary: oklch(0.64 0.18 29);
-  --primary-foreground: oklch(0.15 0.01 40);
-  --secondary: oklch(0.14 0 0);
-  --secondary-foreground: oklch(0.95 0.01 75);
-  --muted: oklch(0.14 0 0);
-  --muted-foreground: oklch(0.68 0.02 70);
-  --accent: oklch(0.19 0.02 80);
-  --accent-foreground: oklch(0.92 0.02 80);
-  --destructive: oklch(0.62 0.17 350);
+  /* Indigo-black — a lamp-lit page at night, not an AMOLED true black */
+  --background: oklch(0.17 0.014 260);
+  --foreground: oklch(0.93 0.008 240);
+  --card: oklch(0.21 0.015 260);
+  --card-foreground: oklch(0.93 0.008 240);
+  --popover: oklch(0.21 0.015 260);
+  --popover-foreground: oklch(0.93 0.008 240);
+  --primary: oklch(0.72 0.09 265);
+  --primary-foreground: oklch(0.17 0.014 260);
+  --secondary: oklch(0.26 0.014 260);
+  --secondary-foreground: oklch(0.93 0.008 240);
+  --muted: oklch(0.26 0.014 260);
+  --muted-foreground: oklch(0.66 0.014 250);
+  --accent: oklch(0.3 0.02 260);
+  --accent-foreground: oklch(0.93 0.008 240);
+  --destructive: oklch(0.62 0.17 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.24 0 0);
-  --input: oklch(0.28 0 0);
-  --ring: oklch(0.64 0.18 29);
+  --border: oklch(0.32 0.016 260);
+  --input: oklch(0.36 0.016 260);
+  --ring: oklch(0.72 0.09 265);
+  --ochre: oklch(0.75 0.12 78);
+  --vermilion: oklch(0.7 0.17 25);
   --highlight-yellow: oklch(0.82 0.19 92);
   --highlight-red: oklch(0.7 0.22 20);
   --highlight-orange: oklch(0.74 0.2 48);
@@ -162,19 +161,19 @@
   --highlight-blue: oklch(0.72 0.17 225);
   --highlight-purple: oklch(0.72 0.18 315);
   --highlight-pink: oklch(0.76 0.2 350);
-  --chart-1: oklch(0.64 0.18 29);
-  --chart-2: oklch(0.65 0.16 150);
-  --chart-3: oklch(0.83 0.15 90);
-  --chart-4: oklch(0.62 0.13 250);
-  --chart-5: oklch(0.75 0.13 80);
-  --sidebar: oklch(0.05 0 0);
-  --sidebar-foreground: oklch(0.95 0.01 75);
-  --sidebar-primary: oklch(0.64 0.18 29);
-  --sidebar-primary-foreground: oklch(0.15 0.01 40);
-  --sidebar-accent: oklch(0.14 0 0);
-  --sidebar-accent-foreground: oklch(0.95 0.01 75);
-  --sidebar-border: oklch(0.24 0 0);
-  --sidebar-ring: oklch(0.64 0.18 29);
+  --chart-1: oklch(0.72 0.09 265);
+  --chart-2: oklch(0.75 0.12 78);
+  --chart-3: oklch(0.7 0.17 25);
+  --chart-4: oklch(0.72 0.16 205);
+  --chart-5: oklch(0.74 0.16 155);
+  --sidebar: oklch(0.21 0.015 260);
+  --sidebar-foreground: oklch(0.93 0.008 240);
+  --sidebar-primary: oklch(0.72 0.09 265);
+  --sidebar-primary-foreground: oklch(0.17 0.014 260);
+  --sidebar-accent: oklch(0.26 0.014 260);
+  --sidebar-accent-foreground: oklch(0.93 0.008 240);
+  --sidebar-border: oklch(0.32 0.016 260);
+  --sidebar-ring: oklch(0.72 0.09 265);
 }
 
 @layer base {
@@ -201,18 +200,29 @@
 /* Scripture reading text */
 @utility scripture-text {
   font-family: var(--font-serif);
-  line-height: 1.85;
-  letter-spacing: 0.002em;
+  line-height: 1.75;
+  letter-spacing: 0.001em;
 }
 
 @utility scripture-text-am {
   font-family: var(--font-ethiopic);
-  line-height: 2;
+  line-height: 1.95;
 }
 
-/* Large display headings — set with restraint, manuscript-title feel */
+/* Large display headings — set with restraint, a codex title-page feel */
 @utility font-display {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+/* Reference numerals: verse numbers, cross-ref/footnote markers — the one place ochre appears */
+@utility text-ochre {
+  color: var(--color-ochre);
+}
+
+/* Red-letter text — functional marker only, never used as a UI accent */
+@utility text-vermilion {
+  color: var(--color-vermilion);
 }
 
 /* Carbon-style focus ring */
