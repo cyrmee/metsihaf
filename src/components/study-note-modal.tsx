@@ -36,7 +36,7 @@ export function StudyNoteModal({ sourceLabel, note, open, onClose }: StudyNoteMo
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
+      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
         <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center px-4 py-3">
           <span aria-hidden="true" />
           <div className="text-center">
@@ -47,7 +47,7 @@ export function StudyNoteModal({ sourceLabel, note, open, onClose }: StudyNoteMo
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="focus-carbon flex h-8 w-8 items-center justify-center justify-self-end rounded-full text-muted-foreground hover:text-foreground"
+            className="focus-carbon flex h-8 w-8 items-center justify-center justify-self-end rounded-md text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -63,11 +63,15 @@ export function StudyNoteModal({ sourceLabel, note, open, onClose }: StudyNoteMo
               <p className="mb-3 text-xs font-semibold text-primary">
                 {SOURCE_LABELS[note.source] ?? note.source}
               </p>
-              {note.text.split("\n\n").map((paragraph, i) => (
-                <p key={i} className="mb-3 text-[0.95rem] leading-relaxed text-foreground">
-                  {paragraph}
-                </p>
-              ))}
+              {note.text
+                .split("\n")
+                .map((p) => p.trim())
+                .filter(Boolean)
+                .map((paragraph, i) => (
+                  <p key={i} className="mb-3 text-[0.95rem] leading-relaxed text-foreground">
+                    {paragraph}
+                  </p>
+                ))}
             </>
           )}
         </div>
