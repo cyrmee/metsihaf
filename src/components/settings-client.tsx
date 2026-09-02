@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Moon, Pilcrow, Rows3, Sun, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Moon, Sun, Trash2 } from "lucide-react";
 import { InlineSelect } from "@/components/inline-select";
 import { AccountSection } from "@/components/account-section";
 import {
@@ -14,19 +14,16 @@ import {
   getFontSize,
   getLetterSpacing,
   getLineSpacing,
-  getVerseView,
   setAmharicFont,
   setDarkMode,
   setEnglishFont,
   setFontSize,
   setLetterSpacing,
   setLineSpacing,
-  setVerseView,
   type AmharicFont,
   type EnglishFont,
   type LetterSpacing,
   type LineSpacing,
-  type VerseViewMode,
 } from "@/lib/local-store";
 
 const FONT_SIZES = [15, 17, 19, 22, 25];
@@ -54,11 +51,11 @@ const AMHARIC_FONTS: { id: AmharicFont; label: string }[] = [
   { id: "abyssinica", label: "Abyssinica" },
 ];
 
-/** A bordered, curved glass panel — the grouping unit for the whole page. */
+/** A bordered card — the grouping unit for the whole page. */
 function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-border bg-card">
-      <h2 className="border-b border-border px-4 py-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <h2 className="border-b border-border px-4 py-2.5 font-display text-sm font-medium text-foreground">
         {title}
       </h2>
       <div className="divide-y divide-border">{children}</div>
@@ -87,15 +84,15 @@ function SettingsRow({
   );
 }
 
-/** Rounded disclosure, styled to match the glass panels around it. */
+/** Rounded disclosure, styled to match the cards around it. */
 function LegalDetails({ summary, children }: { summary: string; children: ReactNode }) {
   return (
-    <details className="group overflow-hidden rounded-2xl border border-border">
+    <details className="group overflow-hidden rounded-md border border-border">
       <summary className="focus-carbon flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground marker:content-none">
         {summary}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <div className="space-y-3 border-t border-border px-4 py-4 text-xs leading-relaxed text-muted-foreground">
+      <div className="flex flex-col gap-3 border-t border-border px-4 py-4 text-xs leading-relaxed text-muted-foreground">
         {children}
       </div>
     </details>
@@ -105,7 +102,6 @@ function LegalDetails({ summary, children }: { summary: string; children: ReactN
 export function SettingsClient() {
   const [dark, setDark] = useState(false);
   const [fontSize, setFontSizeState] = useState(18);
-  const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
   const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
   const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
@@ -114,7 +110,6 @@ export function SettingsClient() {
   useEffect(() => {
     setDark(getDarkMode());
     setFontSizeState(getFontSize());
-    setViewModeState(getVerseView());
     setLineSpacingState(getLineSpacing());
     setLetterSpacingState(getLetterSpacing());
     setEnglishFontState(getEnglishFont());
@@ -130,11 +125,6 @@ export function SettingsClient() {
   const changeFontSize = (size: number) => {
     setFontSizeState(size);
     setFontSize(size);
-  };
-
-  const changeViewMode = (mode: VerseViewMode) => {
-    setViewModeState(mode);
-    setVerseView(mode);
   };
 
   const changeLineSpacing = (spacing: LineSpacing) => {
@@ -179,7 +169,7 @@ export function SettingsClient() {
         </p>
       </div>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-8 flex flex-col gap-6">
         <SettingsGroup title="Appearance">
           <SettingsRow label="Dark mode">
             <button
@@ -212,7 +202,7 @@ export function SettingsClient() {
                   onClick={() => changeFontSize(size)}
                   aria-label={`Text size ${size}`}
                   aria-pressed={fontSize === size}
-                  className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-full border font-serif ${
+                  className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-md border font-serif ${
                     fontSize === size
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-foreground hover:bg-accent"
@@ -263,7 +253,7 @@ export function SettingsClient() {
                   type="button"
                   onClick={() => changeLineSpacing(s.id)}
                   aria-pressed={lineSpacing === s.id}
-                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-full border text-sm font-medium ${
+                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-md border text-sm font-medium ${
                     lineSpacing === s.id
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-foreground hover:bg-accent"
@@ -283,7 +273,7 @@ export function SettingsClient() {
                   type="button"
                   onClick={() => changeLetterSpacing(s.id)}
                   aria-pressed={letterSpacing === s.id}
-                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-full border text-sm font-medium ${
+                  className={`focus-carbon flex h-11 w-24 items-center justify-center rounded-md border text-sm font-medium ${
                     letterSpacing === s.id
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-foreground hover:bg-accent"
@@ -292,43 +282,6 @@ export function SettingsClient() {
                   {s.label}
                 </button>
               ))}
-            </div>
-          </SettingsRow>
-
-          <SettingsRow label="Layout">
-            <div
-              className="flex items-center gap-1.5 shrink-0"
-              role="group"
-              aria-label="Verse layout"
-            >
-              <button
-                type="button"
-                onClick={() => changeViewMode("line")}
-                aria-label="Verse per line"
-                aria-pressed={viewMode === "line"}
-                title="Verse per line"
-                className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-full border ${
-                  viewMode === "line"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border text-foreground hover:bg-accent"
-                }`}
-              >
-                <Rows3 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => changeViewMode("paragraph")}
-                aria-label="Paragraph"
-                aria-pressed={viewMode === "paragraph"}
-                title="Paragraph"
-                className={`focus-carbon flex h-11 w-11 items-center justify-center rounded-full border ${
-                  viewMode === "paragraph"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border text-foreground hover:bg-accent"
-                }`}
-              >
-                <Pilcrow className="h-4 w-4" />
-              </button>
             </div>
           </SettingsRow>
         </SettingsGroup>
@@ -347,7 +300,7 @@ export function SettingsClient() {
             <button
               type="button"
               onClick={clearLocalData}
-              className="focus-carbon flex shrink-0 items-center gap-1.5 rounded-full border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
+              className="focus-carbon flex shrink-0 items-center gap-1.5 rounded-md border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" /> Clear
             </button>
@@ -355,7 +308,7 @@ export function SettingsClient() {
         </SettingsGroup>
 
         <SettingsGroup title="About">
-          <div className="space-y-3 px-4 py-4 text-sm">
+          <div className="flex flex-col gap-3 px-4 py-4 text-sm">
             <p className="text-foreground">
               <span className="font-display text-base font-semibold">Metsihaf</span>{" "}
               <span className="font-ethiopic text-muted-foreground">(መጽሐፍ)</span> — Amharic for
@@ -370,7 +323,7 @@ export function SettingsClient() {
             </p>
           </div>
 
-          <div className="space-y-1.5 px-4 py-4 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1.5 px-4 py-4 text-xs text-muted-foreground">
             <p className="mb-2 font-medium text-foreground">Sources &amp; credits</p>
             <p>
               Amharic Bible text © United Bible Societies, used for non-commercial personal study.
@@ -378,7 +331,7 @@ export function SettingsClient() {
             <p>Cross-references from OpenBible.info, licensed CC BY.</p>
           </div>
 
-          <div className="space-y-3 px-4 py-4">
+          <div className="flex flex-col gap-3 px-4 py-4">
             <LegalDetails summary="Privacy policy">
               <p>Last updated August 30, 2026.</p>
               <p>

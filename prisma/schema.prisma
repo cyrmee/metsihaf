@@ -44,11 +44,6 @@ enum LetterSpacing {
   wide
 }
 
-enum VerseViewMode {
-  line
-  paragraph
-}
-
 model User {
   id        String   @id @default(uuid())
   email     String?  @unique
@@ -104,25 +99,24 @@ model ReadingPosition {
 }
 
 model Verse {
-  version  String
-  language String
-  book     String
-  chapter  Int
-  verse    Int
-  verseEnd Int
-  label    String
-  text     String
+  version    String
+  language   String
+  book       String
+  chapter    Int
+  verse      Int
+  verseEnd   Int
+  label      String
+  text       String
   /// Character ranges in `text` spoken by Jesus, e.g. [[0, 42]] — null when the source has no such markup.
-  redLetter Json?
+  redLetter  Json?
   /// Translator footnotes anchored to a character offset in `text`, e.g. [{"at": 30, "note": "Or 'and he saw'"}] — null when the source has none.
-  footnotes Json?
+  footnotes  Json?
   /// Section heading displayed just above this verse, e.g. "Giving to the Needy" for Matthew 6:1 — null except on the verse a section starts at.
-  heading String?
+  heading    String?
   /// Secondary heading below `heading` (e.g. a speaker label in Song of Solomon) — null unless the source has one alongside `heading`.
   subheading String?
-
-  @@id([version, book, chapter, verse])
-  @@index([language, version])
+  /// Whether this verse is rendered one verse per line (poetry) instead of folded into a flowing paragraph (prose) — from the source's own \q/\p paragraph markup.
+  poetic     Boolean @default(false)
   // Full-text search index, managed outside Prisma's schema (expression indexes
   // aren't representable in the Prisma schema language):
   //   CREATE INDEX verse_version_fts_idx ON "Verse"
@@ -134,6 +128,9 @@ model Verse {
   // and it would only get worse as more translations are seeded). The btree_gin
   // extension lets version ride in the same GIN index, cutting that recheck to
   // near zero (<1ms).
+
+  @@id([version, book, chapter, verse])
+  @@index([language, version])
 }
 
 model StudyNote {
@@ -156,7 +153,6 @@ model Preference {
   userId            String        @unique
   darkMode          Boolean       @default(false)
   fontSize          Int           @default(18)
-  verseView         VerseViewMode @default(line)
   accentTheme       AccentTheme   @default(red)
   lineSpacing       LineSpacing   @default(normal)
   letterSpacing     LetterSpacing @default(normal)

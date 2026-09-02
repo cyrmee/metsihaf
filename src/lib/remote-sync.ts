@@ -32,7 +32,6 @@ import {
   getLineSpacing,
   getNotes,
   getReadingPosition,
-  getVerseView,
   onStoreChange,
   saveReadingPosition,
   setAccentTheme,
@@ -42,7 +41,6 @@ import {
   setLetterSpacing,
   setLineSpacing,
   setNote,
-  setVerseView,
   toggleBookmark,
 } from "@/lib/local-store";
 
@@ -82,7 +80,6 @@ async function pullRemoteIntoLocal() {
     // — in practice we just apply the remote copy, since it's the last-synced state.
     setDarkMode(remote.darkMode);
     setFontSize(remote.fontSize);
-    setVerseView(remote.verseView);
     setAccentTheme(remote.accentTheme);
     setLineSpacing(remote.lineSpacing);
     setLetterSpacing(remote.letterSpacing);
@@ -103,7 +100,6 @@ async function pushAllLocal() {
   await updatePreferences({
     darkMode: getDarkMode(),
     fontSize: getFontSize(),
-    verseView: getVerseView(),
     accentTheme: getAccentTheme(),
     lineSpacing: getLineSpacing(),
     letterSpacing: getLetterSpacing(),

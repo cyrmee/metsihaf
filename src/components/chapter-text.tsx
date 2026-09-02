@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   forwardRef,
   useCallback,
   useEffect,
@@ -45,7 +46,6 @@ import {
   type HighlightColor,
   type LetterSpacing,
   type LineSpacing,
-  type VerseViewMode,
 } from "@/lib/local-store";
 import { useStoreVersion } from "@/lib/use-store-version";
 import { useTranslations } from "@/lib/use-translations";
@@ -93,9 +93,92 @@ const HIGHLIGHT_SWATCHES: { color: HighlightColor; className: string; label: str
   { color: "pink", className: "bg-highlight-pink", label: "Pink" },
 ];
 
+// BSB folds a Psalm's musical/authorial superscription (e.g. "For the
+// choirmaster. According to Sheminith. A Psalm of David.") into verse 1's
+// `text` rather than a separate field. We detect and style it apart at
+// render time instead of splitting the data, so footnote/red-letter
+// character offsets (anchored into the original `text`) stay valid.
+const SUPERSCRIPTION_KEYWORDS = [
+  "choirmaster",
+  "maskil",
+  "miktam",
+  "michtam",
+  "shiggaion",
+  "ascents",
+  "gittith",
+  "sheminith",
+  "mahalath",
+  "shoshannim",
+  "shushan",
+  "jeduthun",
+  "alamoth",
+  "leannoth",
+  "a contemplation",
+  "an instruction",
+];
+const SUPERSCRIPTION_STARTSWITH = [
+  "a psalm",
+  "a song",
+  "a prayer",
+  "of david",
+  "of asaph",
+  "of solomon",
+  "of moses",
+  "of heman",
+  "of ethan",
+  "of korah",
+  "of the sons of korah",
+];
+const SUPERSCRIPTION_CONTINUATION = [
+  "when ",
+  "according to",
+  "for the",
+  "to the tune",
+  "upon ",
+  "on the",
+];
+// Psalms whose leading "When …" clause is poetic body text, not a title —
+// caps how many leading sentence fragments count as the superscription (0
+// excludes the psalm entirely).
+const SUPERSCRIPTION_MAX_FRAGS: Record<number, number> = { 114: 0, 126: 1 };
+
+function fragmentIsSuperscriptionTitle(fragment: string): boolean {
+  const low = fragment.toLowerCase().trim();
+  return (
+    SUPERSCRIPTION_KEYWORDS.some((k) => low.includes(k)) ||
+    SUPERSCRIPTION_STARTSWITH.some((k) => low.startsWith(k)) ||
+    SUPERSCRIPTION_CONTINUATION.some((k) => low.startsWith(k))
+  );
+}
+
+/** Character length of the leading superscription in a Psalm's verse 1 text, 0 if none. */
+function psalmSuperscriptionLength(
+  book: string,
+  chapter: number,
+  verse: number,
+  text: string,
+): number {
+  if (book !== "PSA" || verse !== 1) return 0;
+  const parts = text.split(/(?<=\.)\s+/);
+  const cap = SUPERSCRIPTION_MAX_FRAGS[chapter];
+  let end = 0;
+  let i = 0;
+  while (
+    i < parts.length &&
+    (cap === undefined || i < cap) &&
+    fragmentIsSuperscriptionTitle(parts[i]!)
+  ) {
+    if (i > 0) end += 1; // the separator space consumed by the split
+    end += parts[i]!.length;
+    i++;
+  }
+  return end;
+}
+
 /**
- * Renders a verse's text with red-letter spans styled and footnote anchors
- * marked with a lettered superscript (a, b, c…), in source order. Both are
+ * Renders a verse's text with red-letter spans styled, footnote anchors
+ * marked with a lettered superscript (a, b, c…), and a leading Psalm
+ * superscription (if any) styled apart — all in source order. Each is
  * optional per-translation markup carried on the verse itself.
  */
 function renderVerseText(
@@ -105,10 +188,27 @@ function renderVerseText(
   highlightColor?: HighlightColor,
 ): ReactNode {
   if (!redLetter?.length && !footnotes?.length) return text;
+  const { after } = renderVerseTextParts(text, redLetter, footnotes, highlightColor, 0);
+  return after;
+}
 
+/**
+ * Like {@link renderVerseText}, but splits the output at `superscriptionEnd`
+ * (from {@link psalmSuperscriptionLength}) into `before` (the Psalm
+ * superscription, styled as its own line) and `after` (the verse body) —
+ * `before` is empty when there's no superscription.
+ */
+function renderVerseTextParts(
+  text: string,
+  redLetter: [number, number][] | undefined,
+  footnotes: { at: number }[] | undefined,
+  highlightColor: HighlightColor | undefined,
+  superscriptionEnd: number,
+): { before: ReactNode[]; after: ReactNode[] } {
   type Event =
     | { pos: number; kind: "redStart" }
     | { pos: number; kind: "redEnd" }
+    | { pos: number; kind: "supEnd" }
     | { pos: number; kind: "note"; letter: string };
   const events: Event[] = [];
   for (const [start, end] of redLetter ?? []) {
@@ -117,14 +217,16 @@ function renderVerseText(
   (footnotes ?? []).forEach((f, i) => {
     events.push({ pos: f.at, kind: "note", letter: String.fromCharCode(97 + i) });
   });
-  // At the same offset, close a red span and place any note marker before opening the next span.
-  const order = { redEnd: 0, note: 1, redStart: 2 };
+  if (superscriptionEnd) events.push({ pos: superscriptionEnd, kind: "supEnd" });
+  // At the same offset, close spans before placing a note marker or opening the next span.
+  const order = { redEnd: 0, supEnd: 0, note: 1, redStart: 2 };
   events.sort((a, b) => a.pos - b.pos || order[a.kind] - order[b.kind]);
 
   const nodes: ReactNode[] = [];
   let cursor = 0;
   let redDepth = 0;
   let key = 0;
+  let splitAt = 0;
   const flush = (end: number) => {
     if (end <= cursor) return;
     const segment = text.slice(cursor, end);
@@ -132,7 +234,7 @@ function renderVerseText(
       redDepth > 0 ? (
         <span
           key={key++}
-          className={`text-red-600 dark:text-red-400 ${highlightColor ? RED_LETTER_DARK_HIGHLIGHT_BG[highlightColor] : ""}`}
+          className={`text-vermilion ${highlightColor ? RED_LETTER_DARK_HIGHLIGHT_BG[highlightColor] : ""}`}
         >
           {segment}
         </span>
@@ -146,32 +248,47 @@ function renderVerseText(
     flush(e.pos);
     if (e.kind === "redStart") redDepth++;
     else if (e.kind === "redEnd") redDepth--;
+    else if (e.kind === "supEnd") splitAt = nodes.length;
     else
       nodes.push(
-        <sup key={key++} className="ml-0.5 select-none text-[0.65em] font-semibold text-primary">
+        <sup key={key++} className="ml-0.5 select-none text-[0.65em] font-semibold text-ochre">
           {e.letter}
         </sup>,
       );
   }
   flush(text.length);
-  return nodes;
+  return { before: nodes.slice(0, splitAt), after: nodes.slice(splitAt) };
 }
 
-/** A run of consecutive verses under the same section heading (or no heading, for the chapter's opening verses before its first one). */
+/** A run of consecutive verses under the same section heading (or no heading, for the chapter's opening verses before its first one), all rendered the same way — either flowing as one paragraph or broken one verse per line. */
 interface VerseGroup {
   heading?: string;
   subheading?: string;
+  /** Rendered one verse per line (a quoted poem/song) instead of folded into a flowing paragraph. */
+  poetic: boolean;
   verses: ChapterData["verses"];
 }
 
-/** Splits a chapter's verses into groups at each heading, for paragraph view — a heading is block-level, so it can't sit inside the single flowing `<p>` a paragraph normally renders as. */
-function groupByHeading(verses: ChapterData["verses"]): VerseGroup[] {
+/**
+ * Splits a chapter's verses into groups at each heading and at every
+ * poetic/prose transition — a heading is block-level, so it can't sit inside
+ * the single flowing `<p>` a prose run renders as, and a poetic run needs
+ * its own one-verse-per-line treatment instead of joining the paragraph
+ * around it.
+ */
+function groupForDisplay(
+  verses: ChapterData["verses"],
+  isPoetic: (v: ChapterData["verses"][number]) => boolean,
+): VerseGroup[] {
   const groups: VerseGroup[] = [];
   for (const v of verses) {
-    if (v.heading || groups.length === 0) {
+    const poetic = isPoetic(v);
+    const last = groups[groups.length - 1];
+    if (v.heading || !last || last.poetic !== poetic) {
       groups.push({
         ...(v.heading ? { heading: v.heading } : {}),
         ...(v.subheading ? { subheading: v.subheading } : {}),
+        poetic,
         verses: [],
       });
     }
@@ -192,11 +309,9 @@ function SectionHeading({
 }) {
   return (
     <div className={`mb-2 px-2 ${isFirst ? "mt-0" : "mt-8"}`}>
-      <h2 className="text-2xl font-bold italic text-foreground">{heading}</h2>
+      <h2 className="font-display text-2xl font-medium text-foreground italic">{heading}</h2>
       {subheading && (
-        <p className="mt-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {subheading}
-        </p>
+        <p className="mt-0.5 text-xs font-medium text-muted-foreground">{subheading}</p>
       )}
     </div>
   );
@@ -207,8 +322,6 @@ interface ChapterTextProps {
   fontSize: number;
   /** Enable selection / study actions (disabled in compact compare cells). */
   interactive?: boolean;
-  /** One verse per line, or the chapter set as a single flowing paragraph. */
-  viewMode?: VerseViewMode;
   lineSpacing?: LineSpacing;
   letterSpacing?: LetterSpacing;
 }
@@ -220,14 +333,7 @@ export interface ChapterTextHandle {
 
 /** Renders a chapter's verses with highlight + study action support. */
 export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(function ChapterText(
-  {
-    data,
-    fontSize,
-    interactive = true,
-    viewMode = "line",
-    lineSpacing = "normal",
-    letterSpacing = "normal",
-  },
+  { data, fontSize, interactive = true, lineSpacing = "normal", letterSpacing = "normal" },
   ref,
 ) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -301,10 +407,11 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
       ? getHighlight(highlightRef(data.translation, `${data.book}.${data.chapter}.${verse}`))
       : undefined;
 
+  /** Classes for the inline span that carries the highlight wash — kept thin and identical in both view modes. */
   const verseClass = (verse: number, isSelected: boolean) => {
     const highlight = verseHighlight(verse);
     return [
-      interactive ? "cursor-pointer" : "",
+      "box-decoration-clone px-0.5 py-px",
       highlight ? HIGHLIGHT_CLASSES[highlight.color] : "text-foreground",
       isSelected
         ? "underline decoration-dotted decoration-2 decoration-primary underline-offset-4"
@@ -387,68 +494,87 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           fontFamily,
         }}
       >
-        {viewMode === "paragraph"
-          ? groupByHeading(data.verses).map((group, gi) => (
-              <div key={gi}>
-                {group.heading && (
-                  <SectionHeading
-                    heading={group.heading}
-                    {...(group.subheading ? { subheading: group.subheading } : {})}
-                    isFirst={gi === 0}
-                  />
-                )}
-                <p className="px-2 py-1">
-                  {group.verses.map((v) => {
-                    const ref = `${data.book}.${data.chapter}.${v.verse}`;
-                    const isSelected = selected.has(v.verse);
-                    return (
-                      <span
-                        key={v.verse}
-                        id={`v${v.verse}`}
-                        onClick={() => toggleVerse(v.verse)}
-                        className={`box-decoration-clone mr-2 px-0.5 py-1 ${verseClass(v.verse, isSelected)}`}
-                      >
-                        {extraAnchors(v)}
-                        <sup className="mr-1 select-none text-[0.65em] font-semibold text-muted-foreground">
-                          {v.label ?? v.verse}
-                        </sup>
-                        {renderVerseText(v.text, v.redLetter, v.footnotes, verseHighlight(v.verse)?.color)}{" "}
-                        {marks(v.verse, ref)}
-                      </span>
-                    );
-                  })}
-                </p>
-              </div>
-            ))
-          : data.verses.map((v, vi) => {
-              const ref = `${data.book}.${data.chapter}.${v.verse}`;
-              const isSelected = selected.has(v.verse);
-              return (
-                <div key={v.verse}>
-                  {v.heading && (
-                    <SectionHeading
-                      heading={v.heading}
-                      {...(v.subheading ? { subheading: v.subheading } : {})}
-                      isFirst={vi === 0}
-                    />
-                  )}
-                  <p
-                    id={`v${v.verse}`}
-                    onClick={() => toggleVerse(v.verse)}
-                    className={`px-2 py-0.5 ${verseClass(v.verse, isSelected)}`}
-                  >
-                    {extraAnchors(v)}
-                    <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-muted-foreground">
-                      {v.label ?? v.verse}
-                    </sup>
-                    <span>
-                      {renderVerseText(v.text, v.redLetter, v.footnotes, verseHighlight(v.verse)?.color)}
+        {groupForDisplay(data.verses, (v) => v.poetic ?? false).map((group, gi) => (
+          <div key={gi}>
+            {group.heading && (
+              <SectionHeading
+                heading={group.heading}
+                {...(group.subheading ? { subheading: group.subheading } : {})}
+                isFirst={gi === 0}
+              />
+            )}
+            {group.poetic ? (
+              group.verses.map((v) => {
+                const ref = `${data.book}.${data.chapter}.${v.verse}`;
+                const isSelected = selected.has(v.verse);
+                const supLen = psalmSuperscriptionLength(data.book, data.chapter, v.verse, v.text);
+                const { before, after } = supLen
+                  ? renderVerseTextParts(
+                      v.text,
+                      v.redLetter,
+                      v.footnotes,
+                      verseHighlight(v.verse)?.color,
+                      supLen,
+                    )
+                  : {
+                      before: [],
+                      after: renderVerseText(
+                        v.text,
+                        v.redLetter,
+                        v.footnotes,
+                        verseHighlight(v.verse)?.color,
+                      ),
+                    };
+                return (
+                  <Fragment key={v.verse}>
+                    {before.length > 0 && (
+                      <p className="px-2 italic text-muted-foreground">{before}</p>
+                    )}
+                    <p
+                      id={`v${v.verse}`}
+                      onClick={() => toggleVerse(v.verse)}
+                      className={`px-2 ${interactive ? "cursor-pointer" : ""}`}
+                    >
+                      {extraAnchors(v)}
+                      <sup className="mr-1.5 select-none text-[0.65em] font-semibold text-ochre">
+                        {v.label ?? v.verse}
+                      </sup>
+                      <span className={verseClass(v.verse, isSelected)}>{after}</span>
+                      {marks(v.verse, ref)}
+                    </p>
+                  </Fragment>
+                );
+              })
+            ) : (
+              <p className="px-2 py-1">
+                {group.verses.map((v) => {
+                  const ref = `${data.book}.${data.chapter}.${v.verse}`;
+                  const isSelected = selected.has(v.verse);
+                  return (
+                    <span
+                      key={v.verse}
+                      id={`v${v.verse}`}
+                      onClick={() => toggleVerse(v.verse)}
+                      className={`mr-2 ${interactive ? "cursor-pointer" : ""} ${verseClass(v.verse, isSelected)}`}
+                    >
+                      {extraAnchors(v)}
+                      <sup className="mr-1 select-none text-[0.65em] font-semibold text-ochre">
+                        {v.label ?? v.verse}
+                      </sup>
+                      {renderVerseText(
+                        v.text,
+                        v.redLetter,
+                        v.footnotes,
+                        verseHighlight(v.verse)?.color,
+                      )}{" "}
+                      {marks(v.verse, ref)}
                     </span>
-                    {marks(v.verse, ref)}
-                  </p>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </p>
+            )}
+          </div>
+        ))}
       </div>
 
       {interactive && book && selected.size > 0 && (
@@ -664,10 +790,10 @@ function SelectionToolbar({
           "bottom-[calc(var(--nav-pill-clearance)+0.75rem+env(safe-area-inset-bottom))] md:bottom-6 md:px-4"
         }
       >
-        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-3xl border border-border/50 bg-card/10 pointer-events-auto shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md duration-200">
+        <div className="animate-in fade-in slide-in-from-bottom-3 relative w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-card pointer-events-auto shadow-lg duration-200">
           {panel === "note" && selectedList.length > 0 && (
             <div className="py-2.5 pr-3 pl-4">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                 {single
                   ? `Note on verse ${single.label ?? single.verse}`
                   : `Note on verses ${formatVerseRanges(selectedList.map((v) => v.verse))}`}
@@ -682,7 +808,7 @@ function SelectionToolbar({
                 onChange={(e) => setNoteDraft(e.target.value)}
                 rows={2}
                 autoFocus
-                className="focus-carbon w-full rounded-2xl border border-input bg-background p-2 text-sm text-foreground"
+                className="focus-carbon w-full rounded-md border border-input bg-background p-2 text-sm text-foreground"
                 placeholder="Write your note…"
               />
               <div className="mt-1.5 flex gap-2">
@@ -693,14 +819,14 @@ function SelectionToolbar({
                     selectedList.forEach((v) => setNote(refs(v.verse), text));
                     setPanel(null);
                   }}
-                  className="focus-carbon rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  className="focus-carbon rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Save note
                 </button>
                 <button
                   type="button"
                   onClick={() => setPanel(null)}
-                  className="focus-carbon rounded-full border border-border px-3 py-1 text-xs text-foreground hover:bg-accent"
+                  className="focus-carbon rounded-md border border-border px-3 py-1 text-xs text-foreground hover:bg-accent"
                 >
                   Cancel
                 </button>
@@ -717,7 +843,7 @@ function SelectionToolbar({
                 onClick={copyVerses}
                 aria-label="Copy verse text"
                 title="Copy"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
               >
                 {copied ? (
                   <Check className="h-3.5 w-3.5 text-primary" />
@@ -731,7 +857,7 @@ function SelectionToolbar({
                 onClick={shareVerses}
                 aria-label="Share verse link"
                 title="Share"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
               >
                 {linkCopied ? (
                   <Check className="h-3.5 w-3.5 text-primary" />
@@ -745,7 +871,7 @@ function SelectionToolbar({
                 onClick={toggleBookmarks}
                 aria-label={allBookmarked ? "Remove bookmark" : "Bookmark"}
                 title="Bookmark"
-                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-full border ${
+                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-md border ${
                   allBookmarked
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-foreground hover:bg-accent"
@@ -761,7 +887,7 @@ function SelectionToolbar({
                 onClick={() => setPanel(panel === "note" ? null : "note")}
                 aria-label="Add or edit note"
                 title="Note"
-                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-full border disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-md border disabled:cursor-not-allowed disabled:opacity-40 ${
                   panel === "note"
                     ? "border-primary bg-accent text-primary"
                     : "border-border text-foreground hover:bg-accent"
@@ -776,7 +902,7 @@ function SelectionToolbar({
                 onClick={() => setRefsOpen(true)}
                 aria-label="Cross-references"
                 title="Cross-references"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Link2 className="h-3.5 w-3.5" />
               </button>
@@ -787,7 +913,7 @@ function SelectionToolbar({
                 onClick={() => setNotesOpen(true)}
                 aria-label="Footnotes"
                 title="Footnotes"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Asterisk className="h-3.5 w-3.5" />
               </button>
@@ -798,7 +924,7 @@ function SelectionToolbar({
                 onClick={() => setStudyNoteOpen(true)}
                 aria-label="Study note"
                 title="Study note"
-                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className="focus-carbon flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <BookOpen className="h-3.5 w-3.5" />
               </button>

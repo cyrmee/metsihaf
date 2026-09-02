@@ -12,13 +12,7 @@ import {
   asOptionalString,
   asPositiveInt,
 } from "@/lib/validation";
-import type {
-  AccentTheme,
-  HighlightColor,
-  LetterSpacing,
-  LineSpacing,
-  VerseViewMode,
-} from "@prisma/client";
+import type { AccentTheme, HighlightColor, LetterSpacing, LineSpacing } from "@prisma/client";
 
 export type SyncResult<T> = { ok: boolean; body: T | null };
 
@@ -46,12 +40,10 @@ const ACCENT_THEMES: AccentTheme[] = [
 ];
 const LINE_SPACINGS: LineSpacing[] = ["tight", "normal", "relaxed"];
 const LETTER_SPACINGS: LetterSpacing[] = ["tight", "normal", "wide"];
-const VERSE_VIEW_MODES: VerseViewMode[] = ["line", "paragraph"];
 
 const PREFERENCE_DEFAULTS = {
   darkMode: false,
   fontSize: 18,
-  verseView: "line" as VerseViewMode,
   accentTheme: "red" as AccentTheme,
   lineSpacing: "normal" as LineSpacing,
   letterSpacing: "normal" as LetterSpacing,
@@ -205,7 +197,6 @@ export async function upsertReadingPosition(
 export interface PreferencesData {
   darkMode: boolean;
   fontSize: number;
-  verseView: VerseViewMode;
   accentTheme: AccentTheme;
   lineSpacing: LineSpacing;
   letterSpacing: LetterSpacing;
@@ -226,7 +217,6 @@ export async function updatePreferences(
     const validated: { [K in keyof PreferencesData]?: PreferencesData[K] | undefined } = {
       darkMode: asOptionalBoolean(patch.darkMode, "darkMode"),
       fontSize: asOptionalInt(patch.fontSize, "fontSize"),
-      verseView: asOptionalIn(patch.verseView, VERSE_VIEW_MODES, "verseView"),
       accentTheme: asOptionalIn(patch.accentTheme, ACCENT_THEMES, "accentTheme"),
       lineSpacing: asOptionalIn(patch.lineSpacing, LINE_SPACINGS, "lineSpacing"),
       letterSpacing: asOptionalIn(patch.letterSpacing, LETTER_SPACINGS, "letterSpacing"),

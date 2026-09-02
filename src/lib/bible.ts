@@ -58,6 +58,8 @@ export interface ChapterVerse {
   heading?: string;
   /** Secondary heading below `heading` (e.g. a speaker label in Song of Solomon). */
   subheading?: string;
+  /** Rendered one verse per line (poetry) instead of folded into a flowing paragraph (prose) — from the source's own paragraph markup. */
+  poetic?: boolean;
   /** Commentary note anchored at this verse — present only on the verse a note's passage starts at. */
   studyNote?: StudyNote;
 }

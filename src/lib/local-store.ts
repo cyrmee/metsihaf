@@ -6,8 +6,6 @@
 export type HighlightColor =
   "yellow" | "red" | "orange" | "brown" | "green" | "teal" | "blue" | "purple" | "pink";
 
-export type VerseViewMode = "line" | "paragraph";
-
 export type AccentTheme =
   "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple" | "pink" | "brown";
 
@@ -102,7 +100,6 @@ const KEYS = {
   translation: "bible.translation",
   darkMode: "bible.darkMode",
   fontSize: "bible.fontSize",
-  verseView: "bible.verseView",
   accentTheme: "bible.accentTheme",
   lineSpacing: "bible.lineSpacing",
   letterSpacing: "bible.letterSpacing",
@@ -251,14 +248,6 @@ export function clearStudyData() {
   write(KEYS.bookmarks, []);
   write(KEYS.highlights, []);
   write(KEYS.notes, []);
-}
-
-export function getVerseView(): VerseViewMode {
-  return read<VerseViewMode>(KEYS.verseView, "line");
-}
-
-export function setVerseView(mode: VerseViewMode) {
-  write(KEYS.verseView, mode);
 }
 
 export function getAccentTheme(): AccentTheme {

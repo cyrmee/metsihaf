@@ -2,14 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  CaseSensitive,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Pilcrow,
-  Rows3,
-} from "lucide-react";
+import { CaseSensitive, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChapterText, type ChapterTextHandle } from "@/components/chapter-text";
 import { BookChapterModal } from "@/components/book-chapter-modal";
 import { InlineSelect } from "@/components/inline-select";
@@ -28,7 +21,6 @@ import {
   getLetterSpacing,
   getLineSpacing,
   getPreferredTranslation,
-  getVerseView,
   saveReadingPosition,
   setAmharicFont,
   setEnglishFont,
@@ -36,12 +28,10 @@ import {
   setLetterSpacing,
   setLineSpacing,
   setPreferredTranslation,
-  setVerseView,
   type AmharicFont,
   type EnglishFont,
   type LetterSpacing,
   type LineSpacing,
-  type VerseViewMode,
 } from "@/lib/local-store";
 
 const FONT_SIZES = [15, 17, 19, 22, 25];
@@ -81,7 +71,6 @@ export function ReadChapterClient({
 
   const [translation, setTranslation] = useState<TranslationId>("HSAB");
   const [fontSize, setFontSizeState] = useState(18);
-  const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
   const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
   const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
@@ -108,7 +97,6 @@ export function ReadChapterClient({
   useEffect(() => {
     setTranslation(getPreferredTranslation() as TranslationId);
     setFontSizeState(getFontSize());
-    setViewModeState(getVerseView());
     setLineSpacingState(getLineSpacing());
     setLetterSpacingState(getLetterSpacing());
     setEnglishFontState(getEnglishFont());
@@ -168,11 +156,6 @@ export function ReadChapterClient({
     setFontSize(size);
   };
 
-  const changeViewMode = (mode: VerseViewMode) => {
-    setViewModeState(mode);
-    setVerseView(mode);
-  };
-
   const changeLineSpacing = (spacing: LineSpacing) => {
     setLineSpacingState(spacing);
     setLineSpacing(spacing);
@@ -205,14 +188,14 @@ export function ReadChapterClient({
           onClick={() => setPickerOpen(true)}
           aria-label="Change book or chapter"
           title="Change book or chapter"
-          className="focus-carbon group flex h-8 items-center gap-2.5 rounded-full border border-border px-3 hover:bg-accent"
+          className="focus-carbon group flex h-9 items-center gap-2.5 rounded-md border border-border px-3 hover:bg-accent"
         >
           <h1 className="sr-only">
             {bookName(book, language)} {chapter}
           </h1>
           <span
             aria-hidden="true"
-            className={`text-xs font-medium tracking-[0.2em] text-primary uppercase ${LANGUAGE_FONT_CLASS[language] ?? ""}`}
+            className={`font-display text-sm font-medium text-primary ${language === "am" ? LANGUAGE_FONT_CLASS[language] : "italic"}`}
           >
             {bookName(book, language)}
           </span>
@@ -232,7 +215,7 @@ export function ReadChapterClient({
             aria-label="Text size"
             aria-expanded={fontMenuOpen}
             onClick={() => setFontMenuOpen((v) => !v)}
-            className={`focus-carbon flex h-8 w-8 items-center justify-center rounded-full border ${
+            className={`focus-carbon flex h-9 w-9 items-center justify-center rounded-md border ${
               fontMenuOpen
                 ? "border-primary bg-accent text-primary"
                 : "border-border text-foreground hover:bg-accent"
@@ -241,10 +224,8 @@ export function ReadChapterClient({
             <CaseSensitive className="h-4 w-4" />
           </button>
           {fontMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-64 rounded-3xl border border-border bg-card p-3 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.45)]">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Text size
-              </p>
+            <div className="absolute top-[calc(100%+0.5rem)] right-0 z-30 w-64 rounded-lg border border-border bg-card p-3 shadow-lg">
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Text size</p>
               <div className="mb-3 flex items-center gap-1">
                 {FONT_SIZES.map((size) => (
                   <button
@@ -253,7 +234,7 @@ export function ReadChapterClient({
                     onClick={() => changeFontSize(size)}
                     aria-label={`Text size ${size}`}
                     aria-pressed={fontSize === size}
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-full border font-serif ${
+                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-md border font-serif ${
                       fontSize === size
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border text-foreground hover:bg-accent"
@@ -265,9 +246,7 @@ export function ReadChapterClient({
                 ))}
               </div>
 
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Font
-              </p>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Font</p>
               <InlineSelect
                 className="mb-3"
                 ariaLabel="Font"
@@ -286,9 +265,7 @@ export function ReadChapterClient({
                 options={fontOptions}
               />
 
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Line spacing
-              </p>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Line spacing</p>
               <div className="mb-3 flex items-center gap-1" role="group" aria-label="Line spacing">
                 {LINE_SPACINGS.map((s) => (
                   <button
@@ -296,7 +273,7 @@ export function ReadChapterClient({
                     type="button"
                     onClick={() => changeLineSpacing(s.id)}
                     aria-pressed={lineSpacing === s.id}
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-full border text-xs font-medium ${
+                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-md border text-xs font-medium ${
                       lineSpacing === s.id
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border text-foreground hover:bg-accent"
@@ -307,9 +284,7 @@ export function ReadChapterClient({
                 ))}
               </div>
 
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Letter spacing
-              </p>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Letter spacing</p>
               <div
                 className="mb-3 flex items-center gap-1"
                 role="group"
@@ -321,7 +296,7 @@ export function ReadChapterClient({
                     type="button"
                     onClick={() => changeLetterSpacing(s.id)}
                     aria-pressed={letterSpacing === s.id}
-                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-full border text-xs font-medium ${
+                    className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-md border text-xs font-medium ${
                       letterSpacing === s.id
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border text-foreground hover:bg-accent"
@@ -330,40 +305,6 @@ export function ReadChapterClient({
                     {s.label}
                   </button>
                 ))}
-              </div>
-
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Layout
-              </p>
-              <div className="flex items-center gap-1" role="group" aria-label="Verse layout">
-                <button
-                  type="button"
-                  onClick={() => changeViewMode("line")}
-                  aria-label="Verse per line"
-                  aria-pressed={viewMode === "line"}
-                  title="Verse per line"
-                  className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-full border ${
-                    viewMode === "line"
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <Rows3 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => changeViewMode("paragraph")}
-                  aria-label="Paragraph"
-                  aria-pressed={viewMode === "paragraph"}
-                  title="Paragraph"
-                  className={`focus-carbon flex h-8 flex-1 items-center justify-center rounded-full border ${
-                    viewMode === "paragraph"
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <Pilcrow className="h-3.5 w-3.5" />
-                </button>
               </div>
             </div>
           )}
@@ -382,7 +323,7 @@ export function ReadChapterClient({
 
       {isLoading && <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>}
       {error && (
-        <div className="rounded-3xl border border-destructive/40 bg-card p-4 text-center text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/40 bg-card p-4 text-center text-sm text-destructive">
           Couldn&apos;t load this chapter. {(error as Error).message}
         </div>
       )}
@@ -391,7 +332,6 @@ export function ReadChapterClient({
           ref={chapterTextRef}
           data={data}
           fontSize={fontSize}
-          viewMode={viewMode}
           lineSpacing={lineSpacing}
           letterSpacing={letterSpacing}
         />
@@ -403,7 +343,7 @@ export function ReadChapterClient({
             href={`/read/${prev.book}/${prev.chapter}`}
             aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
             title={`${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, language) : ""} ${prev.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
+            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
@@ -413,7 +353,7 @@ export function ReadChapterClient({
             href={`/read/${next.book}/${next.chapter}`}
             aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
             title={`${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, language) : ""} ${next.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
+            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>

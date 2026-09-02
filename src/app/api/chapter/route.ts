@@ -53,8 +53,15 @@ export async function GET(request: Request) {
         ...(footnotes ? { footnotes } : {}),
         ...(r.heading ? { heading: r.heading } : {}),
         ...(r.subheading ? { subheading: r.subheading } : {}),
+        ...(r.poetic ? { poetic: true } : {}),
         ...(studyNote
-          ? { studyNote: { verseEnd: studyNote.verseEnd, text: studyNote.text, source: studyNote.source } }
+          ? {
+              studyNote: {
+                verseEnd: studyNote.verseEnd,
+                text: studyNote.text,
+                source: studyNote.source,
+              },
+            }
           : {}),
       };
     });

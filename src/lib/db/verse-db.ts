@@ -17,6 +17,8 @@ export interface VerseRow {
   heading: string | null;
   /** Secondary heading below `heading` (e.g. a speaker label), or null. */
   subheading: string | null;
+  /** Rendered one verse per line (poetry) instead of folded into a flowing paragraph (prose). */
+  poetic: boolean;
 }
 
 /** All verse groups for a chapter of the given version, ordered by verse number. */
@@ -37,6 +39,7 @@ export function getChapterRows(
       footnotes: true,
       heading: true,
       subheading: true,
+      poetic: true,
     },
   });
 }

@@ -16,11 +16,9 @@ import {
   getLetterSpacing,
   getLineSpacing,
   getPreferredTranslation,
-  getVerseView,
   saveReadingPosition,
   type LetterSpacing,
   type LineSpacing,
-  type VerseViewMode,
 } from "@/lib/local-store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -37,7 +35,6 @@ export function CompareChapterClient({
   const [left, setLeft] = useState<TranslationId>("HSAB");
   const [right, setRight] = useState<TranslationId>("HSAB");
   const [fontSize, setFontSizeState] = useState(17);
-  const [viewMode, setViewModeState] = useState<VerseViewMode>("line");
   const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
   const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -47,11 +44,10 @@ export function CompareChapterClient({
   const { byId } = useTranslations();
 
   // Compare has no font-settings UI of its own — it just mirrors whatever
-  // text size, line/letter spacing, and layout are set on the single Read
-  // view (or Settings), read once on mount.
+  // text size and line/letter spacing are set on the single Read view (or
+  // Settings), read once on mount.
   useEffect(() => {
     setFontSizeState(Math.max(15, getFontSize() - 1));
-    setViewModeState(getVerseView());
     setLineSpacingState(getLineSpacing());
     setLetterSpacingState(getLetterSpacing());
   }, []);
@@ -115,14 +111,14 @@ export function CompareChapterClient({
           onClick={() => setPickerOpen(true)}
           aria-label="Change book or chapter"
           title="Change book or chapter"
-          className="focus-carbon group flex h-8 items-center gap-2.5 rounded-full border border-border px-3 hover:bg-accent"
+          className="focus-carbon group flex h-8 items-center gap-2.5 rounded-md border border-border px-3 hover:bg-accent"
         >
           <h1 className="sr-only">
             {bookName(book, leftLanguage)} {chapter}
           </h1>
           <span
             aria-hidden="true"
-            className={`text-xs font-medium tracking-[0.2em] text-primary uppercase ${LANGUAGE_FONT_CLASS[leftLanguage] ?? ""}`}
+            className={`font-display text-sm font-medium text-primary ${leftLanguage === "am" ? LANGUAGE_FONT_CLASS[leftLanguage] : "italic"}`}
           >
             {bookName(book, leftLanguage)}
           </span>
@@ -147,7 +143,7 @@ export function CompareChapterClient({
         onJumpToVerse={jumpToVerse}
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 divide-x divide-border sm:gap-4">
         <ComparePane
           ref={leftTextRef}
           translation={left}
@@ -155,7 +151,6 @@ export function CompareChapterClient({
           onChange={setLeft}
           query={leftQuery}
           fontSize={effectiveFontSize}
-          viewMode={viewMode}
           lineSpacing={lineSpacing}
           letterSpacing={letterSpacing}
         />
@@ -166,7 +161,6 @@ export function CompareChapterClient({
           onChange={setRight}
           query={rightQuery}
           fontSize={effectiveFontSize}
-          viewMode={viewMode}
           lineSpacing={lineSpacing}
           letterSpacing={letterSpacing}
         />
@@ -178,7 +172,7 @@ export function CompareChapterClient({
             href={`/compare/${prev.book}/${prev.chapter}`}
             aria-label={`Previous chapter: ${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, leftLanguage) : ""} ${prev.chapter}`}
             title={`${BOOK_BY_ID[prev.book] ? bookName(BOOK_BY_ID[prev.book]!, leftLanguage) : ""} ${prev.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
+            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
@@ -188,7 +182,7 @@ export function CompareChapterClient({
             href={`/compare/${next.book}/${next.chapter}`}
             aria-label={`Next chapter: ${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, leftLanguage) : ""} ${next.chapter}`}
             title={`${BOOK_BY_ID[next.book] ? bookName(BOOK_BY_ID[next.book]!, leftLanguage) : ""} ${next.chapter}`}
-            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground hover:bg-accent"
+            className="focus-carbon flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -204,13 +198,12 @@ interface ComparePaneProps {
   onChange: (id: TranslationId) => void;
   query: ReturnType<typeof useChapter>;
   fontSize: number;
-  viewMode: VerseViewMode;
   lineSpacing: LineSpacing;
   letterSpacing: LetterSpacing;
 }
 
 const ComparePane = forwardRef<ChapterTextHandle, ComparePaneProps>(function ComparePane(
-  { translation, language, onChange, query, fontSize, viewMode, lineSpacing, letterSpacing },
+  { translation, language, onChange, query, fontSize, lineSpacing, letterSpacing },
   ref,
 ) {
   return (
@@ -226,16 +219,15 @@ const ComparePane = forwardRef<ChapterTextHandle, ComparePaneProps>(function Com
           <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
         )}
         {query.error && (
-          <p className="p-3 text-center text-sm text-destructive">
+          <div className="rounded-lg border border-destructive/40 bg-card p-4 text-center text-sm text-destructive">
             Couldn&apos;t load this translation. {(query.error as Error).message}
-          </p>
+          </div>
         )}
         {query.data && (
           <ChapterText
             ref={ref}
             data={query.data}
             fontSize={fontSize}
-            viewMode={viewMode}
             lineSpacing={lineSpacing}
             letterSpacing={letterSpacing}
             interactive={false}
