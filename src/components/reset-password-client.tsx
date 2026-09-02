@@ -63,7 +63,10 @@ export function ResetPasswordClient() {
 
   return (
     <div className="mx-auto flex max-w-sm flex-col items-center px-4 py-16 text-center">
-      <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+      <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+        Account / 00
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground">
         Reset your password
       </h1>
 

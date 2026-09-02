@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Download, Trash2 } from "lucide-react";
 import { AccountSection } from "@/components/account-section";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,20 @@ import { useOfflineDownload } from "@/hooks/use-offline-download";
 import { useTranslations } from "@/lib/use-translations";
 import { clearStudyData } from "@/lib/local-store";
 
-/** A ruled record group — the grouping unit for the whole page. */
-function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
+/** A ruled record group — the grouping unit for the whole page. Only the primary (first) group carries the hard shadow, so that signature keeps its authority instead of repeating down the page. */
+function SettingsGroup({
+  title,
+  primary,
+  children,
+}: {
+  title: string;
+  primary?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <section className="border border-ink bg-paper">
+    <section
+      className={`border border-ink bg-paper ${primary ? "shadow-[10px_10px_0_rgba(23,32,29,0.11)]" : ""}`}
+    >
       <h2 className="flex items-center gap-3 border-b border-ink px-4 py-2.5">
         <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
           {title} /
@@ -56,22 +66,18 @@ function SettingsRow({
   );
 }
 
-/** Rounded disclosure, styled to match the cards around it. */
+/** Square-cornered disclosure, styled to match the ruled surfaces around it. */
 function LegalDetails({ summary, children }: { summary: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <Collapsible
-      open={open}
-      onOpenChange={setOpen}
-      className="overflow-hidden rounded-md border border-border"
-    >
-      <CollapsibleTrigger className="focus-editorial flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground">
+    <Collapsible open={open} onOpenChange={setOpen} className="border border-rule">
+      <CollapsibleTrigger className="focus-editorial flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground hover:bg-field-neutral">
         {summary}
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
         />
       </CollapsibleTrigger>
-      <CollapsibleContent className="flex flex-col gap-3 border-t border-border px-4 py-4 text-xs leading-relaxed text-muted-foreground">
+      <CollapsibleContent className="flex flex-col gap-3 border-t border-rule px-4 py-4 text-xs leading-relaxed text-muted-foreground">
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -88,6 +94,14 @@ export function SettingsClient() {
   } = useOfflineDownload();
   const { translations } = useTranslations();
 
+  // The translation list always starts empty on both server and first
+  // client render, then fills in after mount. Gating on `mounted` (instead
+  // of `translations.length`) keeps the button's disabled state identical
+  // across the two renders even if the fetch happens to settle unusually
+  // fast, so it can't trigger a hydration mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const clearLocalData = () => {
     clearStudyData();
   };
@@ -95,7 +109,10 @@ export function SettingsClient() {
   return (
     <div className="mx-auto max-w-2xl px-2 py-8 sm:px-4">
       <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+          Settings / 04
+        </p>
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground">
           Settings
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -104,7 +121,7 @@ export function SettingsClient() {
       </div>
 
       <div className="mt-8 flex flex-col gap-6">
-        <SettingsGroup title="Account">
+        <SettingsGroup title="Account" primary>
           <div className="px-4 py-4">
             <AccountSection />
           </div>
@@ -123,6 +140,9 @@ export function SettingsClient() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
+                  <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+                    Advisory / destructive
+                  </p>
                   <AlertDialogTitle>Clear local study data?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This removes all bookmarks, highlights and notes on this device. This can&apos;t
@@ -154,7 +174,7 @@ export function SettingsClient() {
               type="button"
               variant="outline"
               size="sm"
-              disabled={downloading || translations.length === 0}
+              disabled={downloading || !mounted || translations.length === 0}
               onClick={() => startDownload(translations.map((t) => t.id))}
               className="shrink-0"
             >

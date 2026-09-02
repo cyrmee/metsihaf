@@ -64,22 +64,45 @@ async function withUser<T>(fn: (userId: string) => Promise<T>): Promise<SyncResu
 
 // ---- Bookmarks ----
 
-export async function getBookmarks(): Promise<SyncResult<{ ref: string; createdAt: number }[]>> {
+/** Rows per page for the paginated getX sync actions below. */
+const SYNC_PAGE_SIZE = 200;
+
+export interface SyncPage<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export async function getBookmarks(
+  cursor?: string,
+): Promise<SyncResult<SyncPage<{ ref: string; createdAt: number }>>> {
   return withUser(async (userId) => {
-    const bookmarks = await prisma.bookmark.findMany({
+    const validCursor = asOptionalString(cursor, "cursor");
+    const rows = await prisma.bookmark.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: SYNC_PAGE_SIZE + 1,
+      ...(validCursor ? { cursor: { id: validCursor }, skip: 1 } : {}),
     });
-    return bookmarks.map((b) => ({ ref: b.ref, createdAt: b.createdAt.getTime() }));
+    const hasMore = rows.length > SYNC_PAGE_SIZE;
+    const page = hasMore ? rows.slice(0, SYNC_PAGE_SIZE) : rows;
+    return {
+      items: page.map((b) => ({ ref: b.ref, createdAt: b.createdAt.getTime() })),
+      nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null,
+    };
   });
 }
 
-export async function upsertBookmark(ref: string): Promise<SyncResult<null>> {
+export async function upsertBookmark(ref: string, createdAt?: number): Promise<SyncResult<null>> {
   return withUser(async (userId) => {
     const validRef = asNonEmptyString(ref, "ref");
+    const validCreatedAt = asOptionalInt(createdAt, "createdAt");
     await prisma.bookmark.upsert({
       where: { userId_ref: { userId, ref: validRef } },
-      create: { userId, ref: validRef },
+      create: {
+        userId,
+        ref: validRef,
+        ...(validCreatedAt ? { createdAt: new Date(validCreatedAt) } : {}),
+      },
       update: {},
     });
     return null;
@@ -95,12 +118,23 @@ export async function deleteBookmark(ref: string): Promise<SyncResult<null>> {
 
 // ---- Highlights ----
 
-export async function getHighlights(): Promise<
-  SyncResult<{ ref: string; color: HighlightColor }[]>
-> {
+export async function getHighlights(
+  cursor?: string,
+): Promise<SyncResult<SyncPage<{ ref: string; color: HighlightColor; createdAt: number }>>> {
   return withUser(async (userId) => {
-    const highlights = await prisma.highlight.findMany({ where: { userId } });
-    return highlights.map((h) => ({ ref: h.ref, color: h.color }));
+    const validCursor = asOptionalString(cursor, "cursor");
+    const rows = await prisma.highlight.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: SYNC_PAGE_SIZE + 1,
+      ...(validCursor ? { cursor: { id: validCursor }, skip: 1 } : {}),
+    });
+    const hasMore = rows.length > SYNC_PAGE_SIZE;
+    const page = hasMore ? rows.slice(0, SYNC_PAGE_SIZE) : rows;
+    return {
+      items: page.map((h) => ({ ref: h.ref, color: h.color, createdAt: h.createdAt.getTime() })),
+      nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null,
+    };
   });
 }
 
@@ -108,6 +142,7 @@ export async function getHighlights(): Promise<
 export async function upsertOrDeleteHighlight(
   ref: string,
   color: HighlightColor | null | undefined,
+  createdAt?: number,
 ): Promise<SyncResult<null>> {
   return withUser(async (userId) => {
     const validRef = asNonEmptyString(ref, "ref");
@@ -116,9 +151,15 @@ export async function upsertOrDeleteHighlight(
       return null;
     }
     const validColor = asIn(color, HIGHLIGHT_COLORS, "color");
+    const validCreatedAt = asOptionalInt(createdAt, "createdAt");
     await prisma.highlight.upsert({
       where: { userId_ref: { userId, ref: validRef } },
-      create: { userId, ref: validRef, color: validColor },
+      create: {
+        userId,
+        ref: validRef,
+        color: validColor,
+        ...(validCreatedAt ? { createdAt: new Date(validCreatedAt) } : {}),
+      },
       update: { color: validColor },
     });
     return null;
@@ -127,12 +168,30 @@ export async function upsertOrDeleteHighlight(
 
 // ---- Notes ----
 
-export async function getNotes(): Promise<
-  SyncResult<{ ref: string; text: string; updatedAt: number }[]>
+export async function getNotes(
+  cursor?: string,
+): Promise<
+  SyncResult<SyncPage<{ ref: string; text: string; createdAt: number; updatedAt: number }>>
 > {
   return withUser(async (userId) => {
-    const notes = await prisma.note.findMany({ where: { userId } });
-    return notes.map((n) => ({ ref: n.ref, text: n.text, updatedAt: n.updatedAt.getTime() }));
+    const validCursor = asOptionalString(cursor, "cursor");
+    const rows = await prisma.note.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: SYNC_PAGE_SIZE + 1,
+      ...(validCursor ? { cursor: { id: validCursor }, skip: 1 } : {}),
+    });
+    const hasMore = rows.length > SYNC_PAGE_SIZE;
+    const page = hasMore ? rows.slice(0, SYNC_PAGE_SIZE) : rows;
+    return {
+      items: page.map((n) => ({
+        ref: n.ref,
+        text: n.text,
+        createdAt: n.createdAt.getTime(),
+        updatedAt: n.updatedAt.getTime(),
+      })),
+      nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null,
+    };
   });
 }
 
@@ -140,6 +199,7 @@ export async function getNotes(): Promise<
 export async function upsertOrDeleteNote(
   ref: string,
   text: string | undefined,
+  createdAt?: number,
 ): Promise<SyncResult<null>> {
   return withUser(async (userId) => {
     const validRef = asNonEmptyString(ref, "ref");
@@ -148,9 +208,15 @@ export async function upsertOrDeleteNote(
       await prisma.note.deleteMany({ where: { userId, ref: validRef } });
       return null;
     }
+    const validCreatedAt = asOptionalInt(createdAt, "createdAt");
     await prisma.note.upsert({
       where: { userId_ref: { userId, ref: validRef } },
-      create: { userId, ref: validRef, text: trimmed },
+      create: {
+        userId,
+        ref: validRef,
+        text: trimmed,
+        ...(validCreatedAt ? { createdAt: new Date(validCreatedAt) } : {}),
+      },
       update: { text: trimmed },
     });
     return null;

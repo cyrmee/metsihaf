@@ -11,6 +11,7 @@
  *   - Call the returned cleanup function on sign-out to stop pushing.
  */
 import {
+  deleteBookmark,
   getBookmarks as getRemoteBookmarks,
   getHighlights as getRemoteHighlights,
   getNotes as getRemoteNotes,
@@ -23,6 +24,7 @@ import {
   upsertReadingPosition,
 } from "@/app/actions/sync";
 import {
+  addBookmark,
   getAccentTheme,
   getBookmarks,
   getFontSize,
@@ -39,33 +41,50 @@ import {
   setLetterSpacing,
   setLineSpacing,
   setNote,
-  toggleBookmark,
 } from "@/lib/local-store";
+
+/**
+ * Pages through a `getX(cursor)` sync action, collecting every item across
+ * all pages. Stops (returning what it has so far) on the first failed page,
+ * e.g. the user session expiring mid-pull.
+ */
+async function fetchAllPages<T>(
+  getPage: (
+    cursor?: string,
+  ) => Promise<{ ok: boolean; body: { items: T[]; nextCursor: string | null } | null }>,
+): Promise<T[]> {
+  const items: T[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const res = await getPage(cursor);
+    if (!res.ok || !res.body) break;
+    items.push(...res.body.items);
+    if (!res.body.nextCursor) break;
+    cursor = res.body.nextCursor;
+  }
+  return items;
+}
 
 /** Pulls the server's copy of every table into localStorage, without dropping local-only items. */
 async function pullRemoteIntoLocal() {
-  const [bookmarksRes, highlightsRes, notesRes, posRes, prefsRes] = await Promise.all([
-    getRemoteBookmarks(),
-    getRemoteHighlights(),
-    getRemoteNotes(),
+  const [remoteBookmarks, remoteHighlights, remoteNotes, posRes, prefsRes] = await Promise.all([
+    fetchAllPages(getRemoteBookmarks),
+    fetchAllPages(getRemoteHighlights),
+    fetchAllPages(getRemoteNotes),
     getRemoteReadingPosition(),
     getRemotePreferences(),
   ]);
 
-  if (bookmarksRes.ok && bookmarksRes.body) {
-    const localRefs = new Set(getBookmarks().map((b) => b.ref));
-    for (const b of bookmarksRes.body) if (!localRefs.has(b.ref)) toggleBookmark(b.ref);
-  }
+  const localBookmarkRefs = new Set(getBookmarks().map((b) => b.ref));
+  for (const b of remoteBookmarks)
+    if (!localBookmarkRefs.has(b.ref)) addBookmark(b.ref, b.createdAt);
 
-  if (highlightsRes.ok && highlightsRes.body) {
-    const local = new Set(getHighlights().map((h) => h.ref));
-    for (const h of highlightsRes.body) if (!local.has(h.ref)) setHighlight(h.ref, h.color);
-  }
+  const localHighlightRefs = new Set(getHighlights().map((h) => h.ref));
+  for (const h of remoteHighlights)
+    if (!localHighlightRefs.has(h.ref)) setHighlight(h.ref, h.color, h.createdAt);
 
-  if (notesRes.ok && notesRes.body) {
-    const local = new Set(getNotes().map((n) => n.ref));
-    for (const n of notesRes.body) if (!local.has(n.ref)) setNote(n.ref, n.text);
-  }
+  const localNoteRefs = new Set(getNotes().map((n) => n.ref));
+  for (const n of remoteNotes) if (!localNoteRefs.has(n.ref)) setNote(n.ref, n.text, n.createdAt);
 
   if (posRes.ok && posRes.body && !getReadingPosition()) {
     saveReadingPosition(posRes.body);
@@ -83,13 +102,45 @@ async function pullRemoteIntoLocal() {
   }
 }
 
-/** Pushes every current local item to the server (used right after pulling, to persist local-only items). */
+/**
+ * Pushes every current local item to the server (used right after pulling,
+ * to persist local-only items), then deletes anything the server still has
+ * that's no longer present locally — otherwise a local removal (e.g.
+ * clearing a highlight) would never reach the server, and the next pull
+ * (next reload, next sign-in) would bring the "deleted" item right back.
+ */
 async function pushAllLocal() {
+  const localBookmarks = getBookmarks();
+  const localHighlights = getHighlights();
+  const localNotes = getNotes();
+
   await Promise.all([
-    ...getBookmarks().map((b) => upsertBookmark(b.ref)),
-    ...getHighlights().map((h) => upsertOrDeleteHighlight(h.ref, h.color)),
-    ...getNotes().map((n) => upsertOrDeleteNote(n.ref, n.text)),
+    ...localBookmarks.map((b) => upsertBookmark(b.ref, b.createdAt)),
+    ...localHighlights.map((h) => upsertOrDeleteHighlight(h.ref, h.color, h.createdAt)),
+    ...localNotes.map((n) => upsertOrDeleteNote(n.ref, n.text, n.createdAt)),
   ]);
+
+  const [remoteBookmarks, remoteHighlights, remoteNotes] = await Promise.all([
+    fetchAllPages(getRemoteBookmarks),
+    fetchAllPages(getRemoteHighlights),
+    fetchAllPages(getRemoteNotes),
+  ]);
+  const localBookmarkRefs = new Set(localBookmarks.map((b) => b.ref));
+  const localHighlightRefs = new Set(localHighlights.map((h) => h.ref));
+  const localNoteRefs = new Set(localNotes.map((n) => n.ref));
+
+  await Promise.all([
+    ...remoteBookmarks
+      .filter((b) => !localBookmarkRefs.has(b.ref))
+      .map((b) => deleteBookmark(b.ref)),
+    ...remoteHighlights
+      .filter((h) => !localHighlightRefs.has(h.ref))
+      .map((h) => upsertOrDeleteHighlight(h.ref, null)),
+    ...remoteNotes
+      .filter((n) => !localNoteRefs.has(n.ref))
+      .map((n) => upsertOrDeleteNote(n.ref, undefined)),
+  ]);
+
   const pos = getReadingPosition();
   if (pos) {
     await upsertReadingPosition(pos.book, pos.chapter, pos.translation);

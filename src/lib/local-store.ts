@@ -58,6 +58,7 @@ export interface Highlight {
   /** A composite `"TRANSLATION:BOOK.CHAPTER.VERSE"` key — see {@link highlightRef}. */
   ref: string;
   color: HighlightColor;
+  createdAt: number;
 }
 
 /**
@@ -82,6 +83,7 @@ export function parseHighlightRef(key: string): { translation: string; ref: stri
 export interface Note {
   ref: string;
   text: string;
+  createdAt: number;
   updatedAt: number;
 }
 
@@ -138,8 +140,13 @@ export function onStoreChange(cb: () => void): () => void {
 
 // ---- Bookmarks ----
 
+/** Newest-first by creation time — the default order everywhere these are listed. */
+function byCreatedAtDesc<T extends { createdAt: number }>(items: T[]): T[] {
+  return items.slice().sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export function getBookmarks(): Bookmark[] {
-  return read<Bookmark[]>(KEYS.bookmarks, []);
+  return byCreatedAtDesc(read<Bookmark[]>(KEYS.bookmarks, []));
 }
 
 export function isBookmarked(ref: string): boolean {
@@ -147,16 +154,24 @@ export function isBookmarked(ref: string): boolean {
 }
 
 export function toggleBookmark(ref: string): boolean {
-  const all = getBookmarks();
+  const all = read<Bookmark[]>(KEYS.bookmarks, []);
   const idx = all.findIndex((b) => b.ref === ref);
   if (idx >= 0) {
     all.splice(idx, 1);
     write(KEYS.bookmarks, all);
     return false;
   }
-  all.unshift({ ref, createdAt: Date.now() });
+  all.push({ ref, createdAt: Date.now() });
   write(KEYS.bookmarks, all);
   return true;
+}
+
+/** Adds a bookmark with an explicit creation time (e.g. importing one from the server) rather than "now". No-op if already bookmarked. */
+export function addBookmark(ref: string, createdAt: number) {
+  if (isBookmarked(ref)) return;
+  const all = read<Bookmark[]>(KEYS.bookmarks, []);
+  all.push({ ref, createdAt });
+  write(KEYS.bookmarks, all);
 }
 
 export function removeBookmark(ref: string) {
@@ -169,34 +184,50 @@ export function removeBookmark(ref: string) {
 // ---- Highlights ----
 
 export function getHighlights(): Highlight[] {
-  return read<Highlight[]>(KEYS.highlights, []);
+  return byCreatedAtDesc(read<Highlight[]>(KEYS.highlights, []));
 }
 
 export function getHighlight(ref: string): Highlight | undefined {
   return getHighlights().find((h) => h.ref === ref);
 }
 
-export function setHighlight(ref: string, color: HighlightColor | null) {
-  let all = getHighlights().filter((h) => h.ref !== ref);
-  if (color) all = [...all, { ref, color }];
-  write(KEYS.highlights, all);
+export function setHighlight(ref: string, color: HighlightColor | null, createdAt?: number) {
+  const all = read<Highlight[]>(KEYS.highlights, []);
+  const existing = all.find((h) => h.ref === ref);
+  const kept = all.filter((h) => h.ref !== ref);
+  const next = color
+    ? [...kept, { ref, color, createdAt: createdAt ?? existing?.createdAt ?? Date.now() }]
+    : kept;
+  write(KEYS.highlights, next);
 }
 
 // ---- Notes ----
 
 export function getNotes(): Note[] {
-  return read<Note[]>(KEYS.notes, []);
+  return byCreatedAtDesc(read<Note[]>(KEYS.notes, []));
 }
 
 export function getNote(ref: string): Note | undefined {
   return getNotes().find((n) => n.ref === ref);
 }
 
-export function setNote(ref: string, text: string) {
+export function setNote(ref: string, text: string, createdAt?: number) {
   const trimmed = text.trim();
-  let all = getNotes().filter((n) => n.ref !== ref);
-  if (trimmed) all = [...all, { ref, text: trimmed, updatedAt: Date.now() }];
-  write(KEYS.notes, all);
+  const all = read<Note[]>(KEYS.notes, []);
+  const existing = all.find((n) => n.ref === ref);
+  const kept = all.filter((n) => n.ref !== ref);
+  const next = trimmed
+    ? [
+        ...kept,
+        {
+          ref,
+          text: trimmed,
+          createdAt: createdAt ?? existing?.createdAt ?? Date.now(),
+          updatedAt: Date.now(),
+        },
+      ]
+    : kept;
+  write(KEYS.notes, next);
 }
 
 export function removeNote(ref: string) {

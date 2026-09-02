@@ -68,11 +68,12 @@ model Bookmark {
 }
 
 model Highlight {
-  id     String         @id @default(uuid())
-  userId String
-  ref    String
-  color  HighlightColor
-  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String         @id @default(uuid())
+  userId    String
+  ref       String
+  color     HighlightColor
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, ref])
 }
@@ -82,6 +83,7 @@ model Note {
   userId    String
   ref       String
   text      String
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

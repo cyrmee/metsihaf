@@ -153,7 +153,12 @@ export function ReadChapterClient({
   if (!isValid) {
     return (
       <div className="mx-auto max-w-3xl px-2 py-16 text-center sm:px-4">
-        <h1 className="font-display text-xl font-semibold text-foreground">Chapter not found</h1>
+        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+          Reading / 00
+        </p>
+        <h1 className="mt-2 font-display text-xl font-semibold text-foreground">
+          Chapter not found
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           That book or chapter doesn&apos;t exist in the Bible.
         </p>

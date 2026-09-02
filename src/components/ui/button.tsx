@@ -5,18 +5,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "focus-editorial inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none text-sm cursor-pointer transition-colors disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "focus-editorial inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none font-mono text-[11px] font-bold uppercase tracking-[0.08em] cursor-pointer transition-colors disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "bg-signal text-paper-white font-mono text-[11px] font-bold uppercase tracking-[0.08em] hover:bg-signal-hover",
+        default: "bg-signal text-paper-white hover:bg-signal-hover",
         destructive:
           "border border-rule text-ink hover:border-signal hover:bg-field-conflict hover:text-signal",
         outline: "border border-ink text-ink hover:bg-ink hover:text-paper-white",
         secondary: "border border-ink text-ink hover:bg-ink hover:text-paper-white",
-        ghost: "text-ink underline decoration-1 underline-offset-4 hover:text-signal",
-        link: "text-signal underline decoration-1 underline-offset-4 hover:text-signal-hover",
+        ghost: "font-sans text-sm text-ink underline decoration-1 underline-offset-4 hover:text-signal",
+        link: "font-sans text-sm text-signal underline decoration-1 underline-offset-4 hover:text-signal-hover",
       },
       size: {
         default: "h-9 px-5",

@@ -136,7 +136,10 @@ export function SearchClient() {
   return (
     <div className="mx-auto max-w-3xl px-2 py-8 sm:px-4">
       <div className="text-center">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+        <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+          Search / 02
+        </p>
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground">
           Search
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -144,32 +147,40 @@ export function SearchClient() {
         </p>
       </div>
 
-      <div className="mt-4 flex justify-center">
-        <TranslationSwitcher value={translation} onChange={setTranslation} size="sm" />
+      <div className="mt-6 border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)]">
+        <div className="flex items-center gap-3 border-b border-ink px-4 py-2.5">
+          <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+            Query /
+          </span>
+          <span aria-hidden="true" className="h-px flex-1 bg-rule" />
+          <TranslationSwitcher value={translation} onChange={setTranslation} size="sm" />
+        </div>
+        <form onSubmit={submit} className="flex gap-0">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={language === "am" ? "ኢየሱስ, ፍቅር, ጸጋ…" : "Jesus, love, grace…"}
+            aria-label="Search the Bible"
+            className={`focus-editorial w-full border-r border-ink bg-paper-white px-4 py-3 text-base text-ink ${languageFontClass}`}
+          />
+          <button
+            type="submit"
+            className="focus-editorial flex items-center gap-1.5 bg-signal px-5 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
+          >
+            <SearchIcon className="h-4 w-4" /> Search
+          </button>
+        </form>
       </div>
 
-      <form onSubmit={submit} className="mt-4 flex gap-0 border border-[#b8b4aa]">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={language === "am" ? "ኢየሱስ, ፍቅር, ጸጋ…" : "Jesus, love, grace…"}
-          aria-label="Search the Bible"
-          className={`focus-editorial w-full border-r border-[#b8b4aa] bg-paper-white px-4 py-2.5 text-base text-ink ${languageFontClass}`}
-        />
-        <button
-          type="submit"
-          className="focus-editorial flex items-center gap-1.5 bg-signal px-5 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
-        >
-          <SearchIcon className="h-4 w-4" /> Search
-        </button>
-      </form>
-
       {!hits && recent.length > 0 && (
-        <div className="mt-5">
-          <p className="mb-2 text-center font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-            Recent searches
-          </p>
-          <ul className="flex flex-wrap justify-center gap-1.5">
+        <div className="mt-8">
+          <div className="mb-3 flex items-center gap-3">
+            <span className="font-mono text-[10px] tracking-[0.1em] text-signal uppercase">
+              Recent / {String(recent.length).padStart(2, "0")}
+            </span>
+            <span aria-hidden="true" className="h-px flex-1 bg-rule" />
+          </div>
+          <ul className="flex flex-wrap gap-1.5">
             {recent.map((r) => (
               <li
                 key={`${r.translation}:${r.query}`}
@@ -200,15 +211,26 @@ export function SearchClient() {
         </div>
       )}
 
-      {busy && <p className="mt-8 text-center text-sm text-muted-foreground">Searching…</p>}
+      {busy && (
+        <p
+          className="mt-8 text-center font-mono text-[10px] tracking-[0.1em] text-muted uppercase"
+          role="status"
+          aria-live="polite"
+        >
+          Searching…
+        </p>
+      )}
 
       {!busy && hits && (
         <div className="mt-8">
-          <p className="mb-3 text-center font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-            {hits.length} result{hits.length === 1 ? "" : "s"}
-          </p>
+          <div className="mb-3 flex items-center gap-3">
+            <span className="font-mono text-[10px] tracking-[0.1em] text-signal uppercase">
+              Results / {String(hits.length).padStart(2, "0")}
+            </span>
+            <span aria-hidden="true" className="h-px flex-1 bg-rule" />
+          </div>
           {hits.length > 0 && (
-            <ul className="flex flex-col border border-ink">
+            <ul className="flex flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)]">
               {hits.map((hit, i) => {
                 const parts = hit.ref.split(".");
                 const { prevRef, nextRef } = neighborRefs(hit.ref);
@@ -245,13 +267,12 @@ export function SearchClient() {
             </ul>
           )}
           {hits.length === 0 && (
-            <div className="flex items-center gap-4 border-t border-b border-rule py-6">
-              <span className="font-mono text-[11px] tracking-[0.06em] text-muted uppercase">
-                00
-              </span>
-              <p className="font-display text-base text-foreground">
-                No verses matched &ldquo;{query.trim()}&rdquo;. Try a shorter word, or check the
-                spelling.
+            <div className="flex flex-col items-start gap-2 border-t border-b border-rule py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <p className="font-display text-lg text-foreground">
+                No verses matched &ldquo;{query.trim()}&rdquo;.
+              </p>
+              <p className="font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+                Try a shorter word, or check the spelling
               </p>
             </div>
           )}

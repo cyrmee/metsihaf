@@ -14,7 +14,10 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
       <body>
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
           <div className="max-w-md text-center">
-            <h1 className="font-display text-xl font-medium text-foreground">
+            <p className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+              System / 00
+            </p>
+            <h1 className="mt-2 font-display text-xl font-medium text-foreground">
               This page didn&apos;t load
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
