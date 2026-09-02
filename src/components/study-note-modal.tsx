@@ -8,6 +8,24 @@ const SOURCE_LABELS: Record<string, string> = {
   "matthew-henry": "Matthew Henry Bible Commentary",
 };
 
+// Matthew Henry's commentary is structured as an outline (Roman-numeral
+// points, numbered points, parenthesized and bracketed sub-points), but the
+// source only sometimes marks a point's start with a newline — other times
+// (e.g. a short enumerated list) several points run together in one block of
+// text. This also splits before an inline marker like "1. " or "(2.) ", so
+// every point gets its own paragraph regardless of which way the source
+// happened to write it.
+const INLINE_MARKER =
+  /(?<=[,;.!?]\s)(?=(?:[IVXLCDM]{1,4}\.|\d{1,2}\.|\(\d{1,2}\.\)|\[\d{1,2}\.\])\s+[A-Z"'‘“])/;
+
+function splitIntoParagraphs(text: string): string[] {
+  return text
+    .split("\n")
+    .flatMap((block) => block.split(INLINE_MARKER))
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 interface StudyNoteModalProps {
   /** The passage this note covers, e.g. "John 3:1-21". */
   sourceLabel: string;
@@ -63,15 +81,11 @@ export function StudyNoteModal({ sourceLabel, note, open, onClose }: StudyNoteMo
               <p className="mb-3 text-xs font-semibold text-primary">
                 {SOURCE_LABELS[note.source] ?? note.source}
               </p>
-              {note.text
-                .split("\n")
-                .map((p) => p.trim())
-                .filter(Boolean)
-                .map((paragraph, i) => (
-                  <p key={i} className="mb-3 text-[0.95rem] leading-relaxed text-foreground">
-                    {paragraph}
-                  </p>
-                ))}
+              {splitIntoParagraphs(note.text).map((paragraph, i) => (
+                <p key={i} className="mb-3 text-[0.95rem] leading-relaxed text-foreground">
+                  {paragraph}
+                </p>
+              ))}
             </>
           )}
         </div>
