@@ -589,6 +589,9 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           open={openRefsVerse !== null}
           onClose={() => setOpenPanel(null)}
           fontSize={fontSize}
+          fontFamily={fontFamily}
+          lineHeight={LINE_SPACING_VALUES[lineSpacing]}
+          letterSpacing={LETTER_SPACING_VALUES[letterSpacing]}
         />
       )}
 
@@ -601,6 +604,9 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           open={openNotesVerse !== null}
           onClose={() => setOpenPanel(null)}
           fontSize={fontSize}
+          fontFamily={fontFamily}
+          lineHeight={LINE_SPACING_VALUES[lineSpacing]}
+          letterSpacing={LETTER_SPACING_VALUES[letterSpacing]}
         />
       )}
 
@@ -618,6 +624,9 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           open={openStudyNoteVerse !== null}
           onClose={() => setOpenPanel(null)}
           fontSize={fontSize}
+          fontFamily={fontFamily}
+          lineHeight={LINE_SPACING_VALUES[lineSpacing]}
+          letterSpacing={LETTER_SPACING_VALUES[letterSpacing]}
         />
       )}
     </>

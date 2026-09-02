@@ -171,11 +171,11 @@ export function BookChapterModal({
   return (
     <>
       <div
-        className="animate-in fade-in-0 fixed inset-0 z-50 bg-black/50 duration-150"
+        className="animate-in fade-in-0 fixed inset-0 z-[60] bg-black/50 duration-150"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150">
+      <div className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-[60] flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150">
         <div className="flex items-center justify-between border-b border-ink px-4 py-3">
           <button
             type="button"

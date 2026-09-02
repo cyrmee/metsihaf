@@ -225,6 +225,18 @@
   line-height: 1.95;
 }
 
+/*
+ * Mobile browsers auto-boost font size in narrow multi-line text blocks
+ * ("font boosting" / text inflation) to keep them readable — since the
+ * reference panels are much narrower than the reading column, the same
+ * pixel size the verse text uses would otherwise render visibly larger
+ * here. Disabling it keeps the sizes actually equal.
+ */
+@utility text-size-adjust-none {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Large display headings — set with restraint, an editorial title-page feel */
 @utility font-display {
   font-family: var(--font-display);

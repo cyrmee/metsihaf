@@ -45,6 +45,12 @@ interface StudyNoteModalProps {
   onClose: () => void;
   /** Reader font size in px, matched to the bible text's current setting. */
   fontSize?: number;
+  /** Reader font family, matched to the bible text's current setting. */
+  fontFamily?: string;
+  /** Reader line height, matched to the bible text's current setting. */
+  lineHeight?: number;
+  /** Reader letter spacing, matched to the bible text's current setting. */
+  letterSpacing?: string;
 }
 
 /** Popup showing a public-domain commentary note anchored to a passage — same shell as FootnotesModal/CrossRefsModal. */
@@ -54,6 +60,9 @@ export function StudyNoteModal({
   open,
   onClose,
   fontSize,
+  fontFamily,
+  lineHeight,
+  letterSpacing,
 }: StudyNoteModalProps) {
   return (
     <ReferencePanel title="Study Note" sourceLabel={sourceLabel} open={open} onClose={onClose}>
@@ -68,7 +77,12 @@ export function StudyNoteModal({
               <p
                 key={i}
                 className="mb-3 leading-relaxed text-foreground"
-                style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
+                style={{
+                  fontSize: fontSize ? `${fontSize}px` : undefined,
+                  fontFamily,
+                  lineHeight,
+                  letterSpacing,
+                }}
               >
                 {paragraph}
               </p>

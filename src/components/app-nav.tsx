@@ -35,10 +35,12 @@ function useBookChapterSuffix(pathname: string): string {
 }
 
 /**
- * A ruled masthead — a thin top bar with the wordmark and text nav links on
- * desktop, and a ruled bottom bar with icon+label pairs on mobile. Flat
- * paper, ink rules, no floating pill or blur. Active destination is marked
- * in rust-red, the app's one action/attention accent.
+ * An ink operational rail — a dark bar (top on desktop, bottom on mobile)
+ * that reads as fixed chrome rather than a page element, in contrast to the
+ * warm paper it sits above. Each destination carries a two-digit mono index
+ * so the rail reads as an ordered register, not a row of icon buttons.
+ * Active destination is marked in rust-red, the app's one action/attention
+ * accent; every other label sits at a dimmed paper-white.
  */
 export function AppNav() {
   const pathname = usePathname();
@@ -46,35 +48,31 @@ export function AppNav() {
   const bookChapter = useBookChapterSuffix(pathname);
 
   const navLinks = [
-    { href: `/read/${bookChapter}`, label: "Read", icon: BookOpen, matchPrefix: "/read" },
-    { href: "/search", label: "Search", icon: Search, exact: true },
-    { href: "/library", label: "Library", icon: LibraryBig, exact: true },
-    { href: "/settings", label: "Settings", icon: Settings, exact: true },
+    { index: "01", href: `/read/${bookChapter}`, label: "Read", icon: BookOpen, matchPrefix: "/read" },
+    { index: "02", href: "/search", label: "Search", icon: Search, exact: true },
+    { index: "03", href: "/library", label: "Library", icon: LibraryBig, exact: true },
+    { index: "04", href: "/settings", label: "Settings", icon: Settings, exact: true },
   ];
 
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-ink bg-paper md:top-0 md:bottom-auto md:justify-between md:border-t-0 md:border-b md:px-6 md:py-0"
+      className="fixed inset-x-0 bottom-0 z-50 flex items-stretch justify-around border-t border-ink bg-ink md:top-0 md:bottom-auto md:justify-between md:border-t-0 md:border-b md:px-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <span className="hidden items-center gap-3 py-5 md:flex">
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 32 32"
-          className="h-5 w-5 shrink-0"
-        >
-          <rect width="32" height="32" fill="var(--color-ink)" />
-          <rect x="6" y="7" width="9" height="18" fill="var(--color-paper-white)" />
-          <rect x="17" y="7" width="9" height="18" fill="var(--color-paper-white)" />
+        <svg aria-hidden="true" viewBox="0 0 32 32" className="h-5 w-5 shrink-0">
+          <rect width="32" height="32" fill="var(--color-paper-white)" />
+          <rect x="6" y="7" width="9" height="18" fill="var(--color-ink)" />
+          <rect x="17" y="7" width="9" height="18" fill="var(--color-ink)" />
           <rect x="15" y="7" width="2" height="18" fill="var(--color-signal)" />
         </svg>
-        <span className="font-mono text-[14px] font-extrabold tracking-[0.2em] text-ink uppercase">
+        <span className="font-mono text-[14px] font-extrabold tracking-[0.2em] text-paper-white uppercase">
           METSIHAF
         </span>
       </span>
 
-      <div className="flex w-full items-stretch justify-around md:w-auto md:justify-end md:gap-1">
+      <div className="flex w-full items-stretch justify-around md:w-auto md:justify-end">
         {navLinks.map((link) => {
           const isActive = link.matchPrefix
             ? pathname.startsWith(link.matchPrefix)
@@ -91,14 +89,30 @@ export function AppNav() {
               aria-current={isActive ? "page" : undefined}
               title={link.label}
               className={cn(
-                "focus-editorial flex flex-col items-center gap-1 border-t-2 py-2 md:flex-row md:gap-2 md:border-t-0 md:border-b-2 md:px-4 md:py-5",
-                isActive
-                  ? "border-signal text-signal"
-                  : "border-transparent text-muted hover:text-ink",
+                "focus-editorial group relative flex flex-1 flex-col items-center gap-1 border-t-2 py-2 md:flex-none md:flex-row md:gap-2.5 md:border-t-0 md:border-b-2 md:border-l md:border-l-paper-white/10 md:px-5 md:py-0",
+                isActive ? "border-signal" : "border-transparent",
               )}
             >
-              <Icon className="h-5 w-5 md:hidden" />
-              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase md:text-[11px]">
+              <Icon
+                className={cn(
+                  "h-5 w-5 md:hidden",
+                  isActive ? "text-signal" : "text-paper-white/50",
+                )}
+              />
+              <span
+                className={cn(
+                  "hidden font-mono text-[10px] tracking-[0.1em] md:inline",
+                  isActive ? "text-signal" : "text-paper-white/35 group-hover:text-paper-white/60",
+                )}
+              >
+                {link.index}
+              </span>
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase md:text-[11px]",
+                  isActive ? "text-signal" : "text-paper-white/70 group-hover:text-paper-white",
+                )}
+              >
                 {link.label}
                 {showAccountDot && (
                   <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-signal" />

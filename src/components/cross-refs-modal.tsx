@@ -27,6 +27,12 @@ interface CrossRefsModalProps {
   onClose: () => void;
   /** Reader font size in px, matched to the bible text's current setting. */
   fontSize?: number;
+  /** Reader font family, matched to the bible text's current setting. */
+  fontFamily?: string;
+  /** Reader line height, matched to the bible text's current setting. */
+  lineHeight?: number;
+  /** Reader letter spacing, matched to the bible text's current setting. */
+  letterSpacing?: string;
 }
 
 interface RefEntry {
@@ -45,6 +51,9 @@ export function CrossRefsModal({
   open,
   onClose,
   fontSize,
+  fontFamily,
+  lineHeight,
+  letterSpacing,
 }: CrossRefsModalProps) {
   const [entries, setEntries] = useState<RefEntry[] | null>(null);
 
@@ -102,8 +111,13 @@ export function CrossRefsModal({
                   </span>
                   {e.text && (
                     <p
-                      className="font-ethiopic mt-1 leading-relaxed text-foreground"
-                      style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
+                      className="mt-1 leading-relaxed text-foreground"
+                      style={{
+                        fontSize: fontSize ? `${fontSize}px` : undefined,
+                        fontFamily,
+                        lineHeight,
+                        letterSpacing,
+                      }}
                     >
                       {e.text}
                     </p>

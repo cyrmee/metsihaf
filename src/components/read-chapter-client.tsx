@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CaseSensitive, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CaseSensitive, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { ChapterText, type ChapterTextHandle } from "@/components/chapter-text";
 import { BookChapterModal } from "@/components/book-chapter-modal";
 import { InlineSelect } from "@/components/inline-select";
@@ -77,7 +77,6 @@ export function ReadChapterClient({
   const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
-  const fontMenuRef = useRef<HTMLDivElement>(null);
   const chapterTextRef = useRef<ChapterTextHandle>(null);
   const [selectionLabel, setSelectionLabel] = useState<string | null>(null);
   const { byId } = useTranslations();
@@ -106,13 +105,15 @@ export function ReadChapterClient({
 
   useEffect(() => {
     if (!fontMenuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (fontMenuRef.current && !fontMenuRef.current.contains(e.target as Node)) {
-        setFontMenuOpen(false);
-      }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFontMenuOpen(false);
     };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
   }, [fontMenuOpen]);
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export function ReadChapterClient({
   useChapterNavigation({
     prevHref: prev ? `/read/${prev.book}/${prev.chapter}` : null,
     nextHref: next ? `/read/${next.book}/${next.chapter}` : null,
-    disabled: !isValid || pickerOpen,
+    disabled: !isValid || pickerOpen || fontMenuOpen,
   });
 
   if (!isValid) {
@@ -171,6 +172,12 @@ export function ReadChapterClient({
   const changeFontSize = (size: number) => {
     setFontSizeState(size);
     setFontSize(size);
+  };
+
+  const fontSizeIndex = Math.max(0, FONT_SIZES.indexOf(fontSize));
+  const stepFontSize = (delta: 1 | -1) => {
+    const next = FONT_SIZES[fontSizeIndex + delta];
+    if (next !== undefined) changeFontSize(next);
   };
 
   const changeLineSpacing = (spacing: LineSpacing) => {
@@ -226,44 +233,88 @@ export function ReadChapterClient({
           <ChevronDown className="h-3.5 w-3.5 transition-colors" />
         </button>
         <TranslationSwitcher value={translation} onChange={changeTranslation} />
-        <div className="relative" ref={fontMenuRef}>
-          <button
-            type="button"
-            aria-label="Text size"
-            aria-expanded={fontMenuOpen}
-            onClick={() => setFontMenuOpen((v) => !v)}
-            className={`focus-editorial flex h-9 w-9 items-center justify-center border ${
-              fontMenuOpen
-                ? "border-signal bg-signal text-paper-white"
-                : "border-ink text-ink hover:bg-ink hover:text-paper-white"
-            }`}
+        <button
+          type="button"
+          aria-label="Text size"
+          aria-expanded={fontMenuOpen}
+          onClick={() => setFontMenuOpen(true)}
+          className={`focus-editorial flex h-9 w-9 items-center justify-center border ${
+            fontMenuOpen
+              ? "border-signal bg-signal text-paper-white"
+              : "border-ink text-ink hover:bg-ink hover:text-paper-white"
+          }`}
+        >
+          <CaseSensitive className="h-4 w-4" />
+        </button>
+      </div>
+
+      {fontMenuOpen && (
+        <>
+          <div
+            className="animate-in fade-in-0 fixed inset-0 z-[60] bg-black/50 duration-150"
+            onClick={() => setFontMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Reading settings"
+            className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-[60] max-h-[85vh] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150"
           >
-            <CaseSensitive className="h-4 w-4" />
-          </button>
-          {fontMenuOpen && (
-            <div className="absolute top-[calc(100%+0.5rem)] right-0 z-30 w-64 border border-ink bg-paper p-3 shadow-[10px_10px_0_rgba(23,32,29,0.11)]">
+            <div className="sticky top-0 flex items-center justify-between border-b border-ink bg-paper px-4 py-3">
+              <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
+                Reading settings
+              </span>
+              <button
+                type="button"
+                onClick={() => setFontMenuOpen(false)}
+                aria-label="Close"
+                className="focus-editorial flex h-8 w-8 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-4">
               <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
                 Text size
               </p>
-              <div className="mb-3 flex items-center border border-ink">
-                {FONT_SIZES.map((size, i) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => changeFontSize(size)}
-                    aria-label={`Text size ${size}`}
-                    aria-pressed={fontSize === size}
-                    className={`focus-editorial flex h-8 flex-1 items-center justify-center font-serif ${i > 0 ? "border-l border-ink" : ""} ${
-                      fontSize === size
-                        ? "bg-ink text-paper-white"
-                        : "text-ink hover:bg-field-neutral"
-                    }`}
-                    style={{ fontSize: `${Math.min(size, 19)}px` }}
-                  >
-                    A
-                  </button>
-                ))}
+              <div className="flex items-center border border-ink">
+                <button
+                  type="button"
+                  onClick={() => stepFontSize(-1)}
+                  disabled={fontSizeIndex === 0}
+                  aria-label="Decrease text size"
+                  className="focus-editorial flex h-9 w-9 shrink-0 items-center justify-center border-r border-ink font-mono text-base text-ink hover:bg-ink hover:text-paper-white disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent disabled:hover:text-muted"
+                >
+                  −
+                </button>
+                <div
+                  className="flex flex-1 items-center justify-center font-serif text-ink"
+                  style={{ fontSize: `${Math.min(fontSize, 19)}px` }}
+                  aria-hidden="true"
+                >
+                  A
+                </div>
+                <button
+                  type="button"
+                  onClick={() => stepFontSize(1)}
+                  disabled={fontSizeIndex === FONT_SIZES.length - 1}
+                  aria-label="Increase text size"
+                  className="focus-editorial flex h-9 w-9 shrink-0 items-center justify-center border-l border-ink font-mono text-base text-ink hover:bg-ink hover:text-paper-white disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent disabled:hover:text-muted"
+                >
+                  +
+                </button>
               </div>
+              <p
+                className="mb-3 flex items-center justify-between pt-1.5 font-mono text-[10px] tracking-[0.06em] text-muted"
+                aria-live="polite"
+              >
+                <span>
+                  SIZE {fontSizeIndex + 1}/{FONT_SIZES.length}
+                </span>
+                <span>{fontSize}PX</span>
+              </p>
 
               <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
                 Font
@@ -315,7 +366,7 @@ export function ReadChapterClient({
                 Letter spacing
               </p>
               <div
-                className="mb-3 flex items-center border border-ink"
+                className="flex items-center border border-ink"
                 role="group"
                 aria-label="Letter spacing"
               >
@@ -336,9 +387,9 @@ export function ReadChapterClient({
                 ))}
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       <BookChapterModal
         book={book}

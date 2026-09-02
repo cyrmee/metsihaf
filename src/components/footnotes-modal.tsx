@@ -11,6 +11,12 @@ interface FootnotesModalProps {
   onClose: () => void;
   /** Reader font size in px, matched to the bible text's current setting. */
   fontSize?: number;
+  /** Reader font family, matched to the bible text's current setting. */
+  fontFamily?: string;
+  /** Reader line height, matched to the bible text's current setting. */
+  lineHeight?: number;
+  /** Reader letter spacing, matched to the bible text's current setting. */
+  letterSpacing?: string;
 }
 
 /** Popup listing a verse's translator footnotes, lettered a/b/c in text order. */
@@ -20,6 +26,9 @@ export function FootnotesModal({
   open,
   onClose,
   fontSize,
+  fontFamily,
+  lineHeight,
+  letterSpacing,
 }: FootnotesModalProps) {
   return (
     <ReferencePanel title="Footnotes" sourceLabel={sourceLabel} open={open} onClose={onClose}>
@@ -36,7 +45,12 @@ export function FootnotesModal({
               </span>
               <p
                 className="mt-1 leading-relaxed text-foreground"
-                style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
+                style={{
+                  fontSize: fontSize ? `${fontSize}px` : undefined,
+                  fontFamily,
+                  lineHeight,
+                  letterSpacing,
+                }}
               >
                 {f.note}
               </p>
