@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ChapterData, ChapterStudyNotes, TranslationId } from "@/lib/bible";
 
 async function fetchChapter(
@@ -16,13 +16,32 @@ async function fetchChapter(
 }
 
 /** Load a chapter for any version stored in the Verse table. */
-export function useChapter(translation: TranslationId, book: string, chapter: number) {
+export function useChapter(
+  translation: TranslationId,
+  book: string,
+  chapter: number,
+  options?: { enabled?: boolean; initialData?: ChapterData },
+) {
   return useQuery<ChapterData>({
     queryKey: ["chapter", translation, book, chapter],
     queryFn: () => fetchChapter(translation, book, chapter),
     staleTime: Infinity, // scripture text never changes once fetched; persisted for offline reading
     gcTime: Infinity, // a finite value here overflows setTimeout's 32-bit limit and GCs almost immediately
+    enabled: options?.enabled ?? true,
+    ...(options?.initialData !== undefined ? { initialData: options.initialData } : {}),
   });
+}
+
+/** Prefetch a chapter so navigating to it is instant (no fetch waterfall). */
+export function usePrefetchChapter() {
+  const queryClient = useQueryClient();
+  return (translation: TranslationId, book: string, chapter: number) => {
+    queryClient.prefetchQuery({
+      queryKey: ["chapter", translation, book, chapter],
+      queryFn: () => fetchChapter(translation, book, chapter),
+      staleTime: Infinity,
+    });
+  };
 }
 
 async function fetchStudyNotes(book: string, chapter: number): Promise<ChapterStudyNotes> {
@@ -41,11 +60,16 @@ async function fetchStudyNotes(book: string, chapter: number): Promise<ChapterSt
  * fetch and one cache entry serve every version of this chapter, and
  * switching translations never re-fetches them.
  */
-export function useStudyNotes(book: string, chapter: number) {
+export function useStudyNotes(
+  book: string,
+  chapter: number,
+  options?: { initialData?: ChapterStudyNotes },
+) {
   return useQuery<ChapterStudyNotes>({
     queryKey: ["study-notes", book, chapter],
     queryFn: () => fetchStudyNotes(book, chapter),
     staleTime: Infinity,
     gcTime: Infinity, // a finite value here overflows setTimeout's 32-bit limit and GCs almost immediately
+    ...(options?.initialData !== undefined ? { initialData: options.initialData } : {}),
   });
 }

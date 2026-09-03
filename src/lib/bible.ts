@@ -26,6 +26,22 @@ export const LANGUAGE_FONT_CLASS: Partial<Record<string, string>> = {
   am: "font-ethiopic",
 };
 
+/**
+ * The one non-English version currently seeded — every other translation id
+ * (present or planned: BSB, and the NIV/ESV/NLT/NASB on the roadmap) is
+ * English, so this needs to list exceptions only, not the full catalog.
+ * Lets the reading page know a translation's language synchronously, without
+ * waiting on the `/api/translations` fetch (which still backs the full
+ * version-picker list, since that one does need the DB's actual catalog).
+ */
+const NON_ENGLISH_TRANSLATIONS: Partial<Record<string, string>> = {
+  HSAB: "am",
+};
+
+export function getTranslationLanguage(id: TranslationId): LanguageId {
+  return NON_ENGLISH_TRANSLATIONS[id] ?? "en";
+}
+
 /** A translator footnote anchored to a character offset in a verse's `text`. */
 export interface Footnote {
   /** Character offset in `text` the note is anchored to. */

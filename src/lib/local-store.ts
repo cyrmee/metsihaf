@@ -239,15 +239,33 @@ export function removeNote(ref: string) {
 
 // ---- Reading position ----
 
+/** Mirrors the reading position into a cookie so the server can redirect `/` straight to it, skipping a client-side hop through a blank page. Kept minimal (no updatedAt) since the server only needs book/chapter. */
+const POSITION_COOKIE = "bible.position";
+const POSITION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function writePositionCookie(pos: Omit<ReadingPosition, "updatedAt">) {
+  if (typeof document === "undefined") return;
+  const value = encodeURIComponent(JSON.stringify({ book: pos.book, chapter: pos.chapter }));
+  document.cookie = `${POSITION_COOKIE}=${value}; path=/; max-age=${POSITION_COOKIE_MAX_AGE}; samesite=lax`;
+}
+
 export function getReadingPosition(): ReadingPosition | null {
   return read<ReadingPosition | null>(KEYS.position, null);
 }
 
 export function saveReadingPosition(pos: Omit<ReadingPosition, "updatedAt">) {
   write(KEYS.position, { ...pos, updatedAt: Date.now() });
+  writePositionCookie(pos);
 }
 
 // ---- Preferences ----
+
+const TRANSLATION_COOKIE = "bible.translation";
+
+function writeTranslationCookie(id: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${TRANSLATION_COOKIE}=${id}; path=/; max-age=${POSITION_COOKIE_MAX_AGE}; samesite=lax`;
+}
 
 export function getPreferredTranslation(): string {
   return read<string>(KEYS.translation, "HSAB");
@@ -255,6 +273,110 @@ export function getPreferredTranslation(): string {
 
 export function setPreferredTranslation(id: string) {
   write(KEYS.translation, id);
+  writeTranslationCookie(id);
+}
+
+/**
+ * Writes the translation cookie from whatever's already in localStorage,
+ * without changing the stored value or notifying other listeners. Call this
+ * once on mount: a preference saved before this cookie mirror existed (or
+ * from before the user's browser had it) would otherwise never get one
+ * written, since `setPreferredTranslation` only runs when the user actively
+ * changes translation — leaving the server to fall back to the default
+ * translation on every load until they happen to reselect their own.
+ */
+export function syncPreferredTranslationCookie() {
+  writeTranslationCookie(getPreferredTranslation());
+}
+
+/**
+ * Mirrors the display prefs that affect layout (size, spacing, font choice)
+ * into one cookie, so the reading page can render with the reader's actual
+ * settings from the first paint instead of a hardcoded default that then
+ * visibly resizes/reflows once localStorage is read on mount.
+ */
+export interface ReadingDisplayPrefs {
+  fontSize: number;
+  lineSpacing: LineSpacing;
+  letterSpacing: LetterSpacing;
+  englishFont: EnglishFont;
+  amharicFont: AmharicFont;
+}
+
+const READING_PREFS_COOKIE = "bible.readingPrefs";
+
+function currentReadingDisplayPrefs(): ReadingDisplayPrefs {
+  return {
+    fontSize: getFontSize(),
+    lineSpacing: getLineSpacing(),
+    letterSpacing: getLetterSpacing(),
+    englishFont: getEnglishFont(),
+    amharicFont: getAmharicFont(),
+  };
+}
+
+function writeReadingPrefsCookie() {
+  if (typeof document === "undefined") return;
+  const value = encodeURIComponent(JSON.stringify(currentReadingDisplayPrefs()));
+  document.cookie = `${READING_PREFS_COOKIE}=${value}; path=/; max-age=${POSITION_COOKIE_MAX_AGE}; samesite=lax`;
+}
+
+/**
+ * Backfills the reading-prefs cookie from whatever's already in localStorage
+ * — same reasoning as syncPreferredTranslationCookie: settings saved before
+ * this cookie mirror existed would otherwise never get one written.
+ */
+export function syncReadingPrefsCookie() {
+  writeReadingPrefsCookie();
+}
+
+export const READING_PREFS_COOKIE_NAME = READING_PREFS_COOKIE;
+
+const VALID_LINE_SPACINGS: readonly LineSpacing[] = ["tight", "normal", "relaxed"];
+const VALID_LETTER_SPACINGS: readonly LetterSpacing[] = ["tight", "normal", "wide"];
+const VALID_ENGLISH_FONTS: readonly EnglishFont[] = [
+  "sourceSerif",
+  "literata",
+  "merriweather",
+  "lora",
+  "crimsonPro",
+  "plexSans",
+];
+const VALID_AMHARIC_FONTS: readonly AmharicFont[] = ["notoSerif", "notoSans", "abyssinica"];
+
+/**
+ * Parses the reading-prefs cookie value (as read server-side from
+ * `next/headers` cookies()) back into validated prefs, or null if it's
+ * missing/malformed — never throws, so a stale or tampered cookie just falls
+ * back to the reading page's own hardcoded defaults instead of erroring.
+ */
+export function parseReadingPrefsCookie(raw: string | undefined): ReadingDisplayPrefs | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw)) as Partial<
+      Record<keyof ReadingDisplayPrefs, unknown>
+    >;
+    const fontSize =
+      typeof parsed.fontSize === "number" ? Math.min(28, Math.max(14, parsed.fontSize)) : null;
+    const lineSpacing = VALID_LINE_SPACINGS.includes(parsed.lineSpacing as LineSpacing)
+      ? (parsed.lineSpacing as LineSpacing)
+      : null;
+    const letterSpacing = VALID_LETTER_SPACINGS.includes(parsed.letterSpacing as LetterSpacing)
+      ? (parsed.letterSpacing as LetterSpacing)
+      : null;
+    const englishFont = VALID_ENGLISH_FONTS.includes(parsed.englishFont as EnglishFont)
+      ? (parsed.englishFont as EnglishFont)
+      : null;
+    const amharicFont = VALID_AMHARIC_FONTS.includes(parsed.amharicFont as AmharicFont)
+      ? (parsed.amharicFont as AmharicFont)
+      : null;
+    if (fontSize === null || !lineSpacing || !letterSpacing || !englishFont || !amharicFont) {
+      return null;
+    }
+    return { fontSize, lineSpacing, letterSpacing, englishFont, amharicFont };
+  } catch {
+    return null;
+  }
 }
 
 export function getFontSize(): number {
@@ -263,6 +385,7 @@ export function getFontSize(): number {
 
 export function setFontSize(px: number) {
   write(KEYS.fontSize, Math.min(28, Math.max(14, px)));
+  writeReadingPrefsCookie();
 }
 
 // ---- Data management ----
@@ -288,6 +411,7 @@ export function getLineSpacing(): LineSpacing {
 
 export function setLineSpacing(spacing: LineSpacing) {
   write(KEYS.lineSpacing, spacing);
+  writeReadingPrefsCookie();
 }
 
 export function getLetterSpacing(): LetterSpacing {
@@ -296,6 +420,7 @@ export function getLetterSpacing(): LetterSpacing {
 
 export function setLetterSpacing(spacing: LetterSpacing) {
   write(KEYS.letterSpacing, spacing);
+  writeReadingPrefsCookie();
 }
 
 export function getEnglishFont(): EnglishFont {
@@ -304,6 +429,7 @@ export function getEnglishFont(): EnglishFont {
 
 export function setEnglishFont(font: EnglishFont) {
   write(KEYS.englishFont, font);
+  writeReadingPrefsCookie();
 }
 
 export function getAmharicFont(): AmharicFont {
@@ -312,6 +438,7 @@ export function getAmharicFont(): AmharicFont {
 
 export function setAmharicFont(font: AmharicFont) {
   write(KEYS.amharicFont, font);
+  writeReadingPrefsCookie();
 }
 
 // ---- Recent searches ----

@@ -8,3 +8,6 @@
  */
 export const BIBLE_CACHE_CONTROL =
   "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800";
+
+/** Same window as `BIBLE_CACHE_CONTROL`'s `s-maxage`, for server-side caches (e.g. `unstable_cache`) backing the same static Bible text. */
+export const BIBLE_CACHE_REVALIDATE_SECONDS = 86400;

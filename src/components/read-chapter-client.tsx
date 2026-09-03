@@ -2,16 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CaseSensitive, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import dynamic from "next/dynamic";
+import { CaseSensitive, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChapterText, type ChapterTextHandle } from "@/components/chapter-text";
-import { BookChapterModal } from "@/components/book-chapter-modal";
-import { InlineSelect } from "@/components/inline-select";
 import { TranslationSwitcher } from "@/components/translation-switcher";
 import { BOOK_BY_ID, bookName, neighborChapter } from "@/data/books";
-import { LANGUAGE_FONT_CLASS, type TranslationId } from "@/lib/bible";
-import { useChapter, useStudyNotes } from "@/lib/use-chapter";
+import {
+  getTranslationLanguage,
+  LANGUAGE_FONT_CLASS,
+  type ChapterData,
+  type ChapterStudyNotes,
+  type TranslationId,
+} from "@/lib/bible";
+import { useChapter, usePrefetchChapter, useStudyNotes } from "@/lib/use-chapter";
 import { useChapterNavigation } from "@/lib/use-chapter-nav";
-import { useTranslations } from "@/lib/use-translations";
 import {
   AMHARIC_FONT_STACKS,
   ENGLISH_FONT_STACKS,
@@ -28,23 +32,30 @@ import {
   setLetterSpacing,
   setLineSpacing,
   setPreferredTranslation,
+  syncPreferredTranslationCookie,
+  syncReadingPrefsCookie,
   type AmharicFont,
   type EnglishFont,
   type LetterSpacing,
   type LineSpacing,
+  type ReadingDisplayPrefs,
 } from "@/lib/local-store";
 
+/**
+ * Both are only needed after an interaction (opening the picker or the
+ * settings dialog), not for first paint of chapter text — loaded as
+ * separate chunks instead of bloating the bundle every reader downloads.
+ */
+const BookChapterModal = dynamic(
+  () => import("@/components/book-chapter-modal").then((m) => m.BookChapterModal),
+  { ssr: false },
+);
+const ReadingSettingsDialog = dynamic(
+  () => import("@/components/reading-settings-dialog").then((m) => m.ReadingSettingsDialog),
+  { ssr: false },
+);
+
 const FONT_SIZES = [15, 17, 19, 22, 25];
-const LINE_SPACINGS: { id: LineSpacing; label: string }[] = [
-  { id: "tight", label: "Tight" },
-  { id: "normal", label: "Normal" },
-  { id: "relaxed", label: "Relaxed" },
-];
-const LETTER_SPACINGS: { id: LetterSpacing; label: string }[] = [
-  { id: "tight", label: "Tight" },
-  { id: "normal", label: "Normal" },
-  { id: "wide", label: "Wide" },
-];
 const ENGLISH_FONTS: { id: EnglishFont; label: string }[] = [
   { id: "sourceSerif", label: "Source Serif" },
   { id: "literata", label: "Literata" },
@@ -62,25 +73,57 @@ const AMHARIC_FONTS: { id: AmharicFont; label: string }[] = [
 export function ReadChapterClient({
   book: bookId,
   chapter: chapterParam,
+  initialTranslation,
+  initialChapterData,
+  initialStudyNotesData,
+  initialReadingPrefs,
 }: {
   book: string;
   chapter: string;
+  /**
+   * Translation the server used to fetch `initialChapterData` (read from a
+   * cookie — see app/read/[book]/[chapter]/page.tsx). Seeding `translation`
+   * state with it up front, rather than a hardcoded default corrected later
+   * from localStorage, means the very first render already matches what the
+   * server rendered — no redundant fetch once localStorage is read.
+   */
+  initialTranslation?: string;
+  initialChapterData?: ChapterData | null;
+  /** Fetched server-side alongside initialChapterData — see page.tsx. Without this, study-note icons visibly popped in a moment after the verse text once their client-side fetch resolved. */
+  initialStudyNotesData?: ChapterStudyNotes | null;
+  /**
+   * Text size/spacing/font, read server-side from the same kind of cookie
+   * mirror (see parseReadingPrefsCookie). Seeding state with these instead
+   * of a hardcoded default is what stops the reading page from visibly
+   * resizing/reflowing once localStorage is read on mount.
+   */
+  initialReadingPrefs?: ReadingDisplayPrefs | null;
 }) {
   const chapter = Number(chapterParam);
   const book = BOOK_BY_ID[bookId];
 
-  const [translation, setTranslation] = useState<TranslationId>("HSAB");
-  const [fontSize, setFontSizeState] = useState(18);
-  const [lineSpacing, setLineSpacingState] = useState<LineSpacing>("normal");
-  const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>("normal");
-  const [englishFont, setEnglishFontState] = useState<EnglishFont>("sourceSerif");
-  const [amharicFont, setAmharicFontState] = useState<AmharicFont>("notoSerif");
+  const [translation, setTranslation] = useState<TranslationId>(
+    () => (initialTranslation as TranslationId) ?? "HSAB",
+  );
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [fontSize, setFontSizeState] = useState(() => initialReadingPrefs?.fontSize ?? 18);
+  const [lineSpacing, setLineSpacingState] = useState<LineSpacing>(
+    () => initialReadingPrefs?.lineSpacing ?? "normal",
+  );
+  const [letterSpacing, setLetterSpacingState] = useState<LetterSpacing>(
+    () => initialReadingPrefs?.letterSpacing ?? "normal",
+  );
+  const [englishFont, setEnglishFontState] = useState<EnglishFont>(
+    () => initialReadingPrefs?.englishFont ?? "sourceSerif",
+  );
+  const [amharicFont, setAmharicFontState] = useState<AmharicFont>(
+    () => initialReadingPrefs?.amharicFont ?? "notoSerif",
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const chapterTextRef = useRef<ChapterTextHandle>(null);
   const [selectionLabel, setSelectionLabel] = useState<string | null>(null);
-  const { byId } = useTranslations();
-  const language = byId[translation]?.language ?? "en";
+  const language = getTranslationLanguage(translation);
   const fontOptions =
     language === "am"
       ? AMHARIC_FONTS.map((f) => ({
@@ -101,20 +144,13 @@ export function ReadChapterClient({
     setLetterSpacingState(getLetterSpacing());
     setEnglishFontState(getEnglishFont());
     setAmharicFontState(getAmharicFont());
+    setPrefsReady(true);
+    // Backfills the translation and display-prefs cookies so the *next*
+    // load's server-side render already uses these preferences — see
+    // syncPreferredTranslationCookie and syncReadingPrefsCookie.
+    syncPreferredTranslationCookie();
+    syncReadingPrefsCookie();
   }, []);
-
-  useEffect(() => {
-    if (!fontMenuOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFontMenuOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [fontMenuOpen]);
 
   useEffect(() => {
     if (book && Number.isInteger(chapter)) {
@@ -122,8 +158,32 @@ export function ReadChapterClient({
     }
   }, [bookId, chapter, translation, book]);
 
-  const { data: chapterData, isLoading, error } = useChapter(translation, bookId, chapter);
-  const { data: studyNotesData } = useStudyNotes(bookId, chapter);
+  const seedData =
+    initialChapterData &&
+    initialChapterData.translation === translation &&
+    initialChapterData.book === bookId &&
+    initialChapterData.chapter === chapter
+      ? initialChapterData
+      : undefined;
+
+  const {
+    data: chapterData,
+    isLoading,
+    error,
+  } = useChapter(translation, bookId, chapter, {
+    enabled: prefsReady,
+    ...(seedData ? { initialData: seedData } : {}),
+  });
+  const seedStudyNotes =
+    initialStudyNotesData &&
+    initialStudyNotesData.book === bookId &&
+    initialStudyNotesData.chapter === chapter
+      ? initialStudyNotesData
+      : undefined;
+
+  const { data: studyNotesData } = useStudyNotes(bookId, chapter, {
+    ...(seedStudyNotes ? { initialData: seedStudyNotes } : {}),
+  });
 
   const data = useMemo(() => {
     if (!chapterData) return chapterData;
@@ -149,6 +209,14 @@ export function ReadChapterClient({
     nextHref: next ? `/read/${next.book}/${next.chapter}` : null,
     disabled: !isValid || pickerOpen || fontMenuOpen,
   });
+
+  const prefetchChapter = usePrefetchChapter();
+  useEffect(() => {
+    if (!prefsReady || !chapterData) return;
+    if (prev) prefetchChapter(translation, prev.book, prev.chapter);
+    if (next) prefetchChapter(translation, next.book, next.chapter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- prefetchChapter identity is stable per-render via useQueryClient; re-running on it would refetch on every render
+  }, [prefsReady, chapterData, translation, prev?.book, prev?.chapter, next?.book, next?.chapter]);
 
   if (!isValid) {
     return (
@@ -254,156 +322,33 @@ export function ReadChapterClient({
       </div>
 
       {fontMenuOpen && (
-        <>
-          <div
-            className="animate-in fade-in-0 fixed inset-0 z-[60] bg-black/50 duration-150"
-            onClick={() => setFontMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Reading settings"
-            className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-[60] max-h-[85vh] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150"
-          >
-            <div className="sticky top-0 flex items-center justify-between border-b border-ink bg-paper px-4 py-3">
-              <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-signal uppercase">
-                Reading settings
-              </span>
-              <button
-                type="button"
-                onClick={() => setFontMenuOpen(false)}
-                aria-label="Close"
-                className="focus-editorial flex h-8 w-8 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="p-4">
-              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-                Text size
-              </p>
-              <div className="flex items-center border border-ink">
-                <button
-                  type="button"
-                  onClick={() => stepFontSize(-1)}
-                  disabled={fontSizeIndex === 0}
-                  aria-label="Decrease text size"
-                  className="focus-editorial flex h-9 w-9 shrink-0 items-center justify-center border-r border-ink font-mono text-base text-ink hover:bg-ink hover:text-paper-white disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent disabled:hover:text-muted"
-                >
-                  −
-                </button>
-                <div
-                  className="flex flex-1 items-center justify-center font-serif text-ink"
-                  style={{ fontSize: `${Math.min(fontSize, 19)}px` }}
-                  aria-hidden="true"
-                >
-                  A
-                </div>
-                <button
-                  type="button"
-                  onClick={() => stepFontSize(1)}
-                  disabled={fontSizeIndex === FONT_SIZES.length - 1}
-                  aria-label="Increase text size"
-                  className="focus-editorial flex h-9 w-9 shrink-0 items-center justify-center border-l border-ink font-mono text-base text-ink hover:bg-ink hover:text-paper-white disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent disabled:hover:text-muted"
-                >
-                  +
-                </button>
-              </div>
-              <p
-                className="mb-3 flex items-center justify-between pt-1.5 font-mono text-[10px] tracking-[0.06em] text-muted"
-                aria-live="polite"
-              >
-                <span>
-                  SIZE {fontSizeIndex + 1}/{FONT_SIZES.length}
-                </span>
-                <span>{fontSize}PX</span>
-              </p>
-
-              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-                Font
-              </p>
-              <InlineSelect
-                className="mb-3"
-                ariaLabel="Font"
-                value={language === "am" ? amharicFont : englishFont}
-                onChange={(id) =>
-                  language === "am"
-                    ? changeAmharicFont(id as AmharicFont)
-                    : changeEnglishFont(id as EnglishFont)
-                }
-                triggerStyle={{
-                  fontFamily:
-                    language === "am"
-                      ? AMHARIC_FONT_STACKS[amharicFont]
-                      : ENGLISH_FONT_STACKS[englishFont],
-                }}
-                options={fontOptions}
-              />
-
-              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-                Line spacing
-              </p>
-              <div
-                className="mb-3 flex items-center border border-ink"
-                role="group"
-                aria-label="Line spacing"
-              >
-                {LINE_SPACINGS.map((s, i) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => changeLineSpacing(s.id)}
-                    aria-pressed={lineSpacing === s.id}
-                    className={`focus-editorial flex h-8 flex-1 items-center justify-center text-xs ${i > 0 ? "border-l border-ink" : ""} ${
-                      lineSpacing === s.id
-                        ? "bg-ink text-paper-white"
-                        : "text-ink hover:bg-field-neutral"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-
-              <p className="mb-1.5 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-                Letter spacing
-              </p>
-              <div
-                className="flex items-center border border-ink"
-                role="group"
-                aria-label="Letter spacing"
-              >
-                {LETTER_SPACINGS.map((s, i) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => changeLetterSpacing(s.id)}
-                    aria-pressed={letterSpacing === s.id}
-                    className={`focus-editorial flex h-8 flex-1 items-center justify-center text-xs ${i > 0 ? "border-l border-ink" : ""} ${
-                      letterSpacing === s.id
-                        ? "bg-ink text-paper-white"
-                        : "text-ink hover:bg-field-neutral"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
+        <ReadingSettingsDialog
+          fontSize={fontSize}
+          onStepFontSize={stepFontSize}
+          language={language}
+          amharicFont={amharicFont}
+          englishFont={englishFont}
+          fontOptions={fontOptions}
+          onChangeAmharicFont={changeAmharicFont}
+          onChangeEnglishFont={changeEnglishFont}
+          lineSpacing={lineSpacing}
+          onChangeLineSpacing={changeLineSpacing}
+          letterSpacing={letterSpacing}
+          onChangeLetterSpacing={changeLetterSpacing}
+          onClose={() => setFontMenuOpen(false)}
+        />
       )}
 
-      <BookChapterModal
-        book={book}
-        chapter={chapter}
-        translation={translation}
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onJumpToVerse={jumpToVerse}
-      />
+      {pickerOpen && (
+        <BookChapterModal
+          book={book}
+          chapter={chapter}
+          translation={translation}
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onJumpToVerse={jumpToVerse}
+        />
+      )}
 
       {isLoading && (
         <p className="py-12 text-center text-sm text-muted-foreground xl:shrink-0">Loading…</p>
