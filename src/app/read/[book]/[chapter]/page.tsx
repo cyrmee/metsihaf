@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { book: bookId, chapter } = await params;
   const book = BOOK_BY_ID[bookId];
   const name = book ? book.nameEn : "Bible";
-  const title = `${name} - Metsihaf Bible`;
+  const title = `${name} - Metsihaf`;
   const description = `Read ${name} chapter ${chapter} in Amharic 1954 and BSB, highlights and notes.`;
   return {
     title,

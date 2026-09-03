@@ -11,7 +11,7 @@ import { OnlineStatusToast } from "@/components/online-status-toast";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Metsihaf — Bible Reader",
+  title: "Metsihaf",
   description:
     "Read the Bible in Amharic 1954, NIV, ESV, NLT, and NASB with cross-references, parallel view, search, and personal study tools.",
   authors: [{ name: "Metsihaf" }],

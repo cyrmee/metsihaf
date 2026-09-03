@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SettingsClient } from "@/components/settings-client";
 
 export const metadata: Metadata = {
-  title: "Settings — Metsihaf Bible Reader",
+  title: "Settings — Metsihaf",
   description: "Appearance, reading layout, text size and default translation preferences.",
 };
 
