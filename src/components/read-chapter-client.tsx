@@ -188,13 +188,32 @@ export function ReadChapterClient({
   const data = useMemo(() => {
     if (!chapterData) return chapterData;
     if (!studyNotesData?.notes.length) return chapterData;
-    const noteByVerse = new Map(studyNotesData.notes.map((n) => [n.verse, n]));
+    // A verse's icon appears if any supported commentary has a note there —
+    // a verse can carry a note from more than one commentary, shown
+    // alphabetically by source (rather than whatever order the DB happens
+    // to return) so it's stable across requests.
+    const notesByVerse = new Map<number, typeof studyNotesData.notes>();
+    for (const n of studyNotesData.notes) {
+      const list = notesByVerse.get(n.verse);
+      if (list) list.push(n);
+      else notesByVerse.set(n.verse, [n]);
+    }
+    for (const list of notesByVerse.values()) {
+      list.sort((a, b) => a.source.localeCompare(b.source));
+    }
     return {
       ...chapterData,
       verses: chapterData.verses.map((v) => {
-        const note = noteByVerse.get(v.verse);
-        return note
-          ? { ...v, studyNote: { verseEnd: note.verseEnd, text: note.text, source: note.source } }
+        const notes = notesByVerse.get(v.verse);
+        return notes
+          ? {
+              ...v,
+              studyNotes: notes.map((note) => ({
+                verseEnd: note.verseEnd,
+                text: note.text,
+                source: note.source,
+              })),
+            }
           : v;
       }),
     };
@@ -285,8 +304,8 @@ export function ReadChapterClient({
     // the highlight rail, and the reference panels) then simply never
     // moves, instead of relying on sticky/fixed tricks layered over a
     // scrolling page.
-    <div className="mx-auto max-w-3xl px-2 py-6 sm:px-4 xl:flex xl:h-[calc(100vh-var(--masthead-height))] xl:flex-col xl:overflow-hidden">
-      <div className="mb-10 flex flex-wrap items-center justify-center gap-3 xl:shrink-0">
+    <div className="mx-auto max-w-3xl py-6 sm:px-4 xl:flex xl:h-[calc(100vh-var(--masthead-height))] xl:flex-col xl:overflow-hidden">
+      <div className="mb-10 flex flex-wrap items-center justify-center gap-3 px-3 xl:shrink-0">
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
@@ -359,7 +378,7 @@ export function ReadChapterClient({
         </div>
       )}
       {data && (
-        <div className="border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-hidden">
+        <div className="bg-paper sm:border sm:border-ink sm:shadow-[10px_10px_0_rgba(23,32,29,0.11)] xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-hidden">
           {/*
             Sticky below `xl` so the selection state (what's picked for
             highlighting, copying, etc.) stays visible while scrolling
@@ -386,7 +405,7 @@ export function ReadChapterClient({
             </span>
             <span aria-hidden="true" className="h-px flex-1 bg-rule" />
           </div>
-          <div className="relative px-1 py-6 sm:px-6 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-y-auto">
+          <div className="relative px-3 py-6 sm:px-6 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-y-auto">
             <ChapterText
               ref={chapterTextRef}
               data={data}

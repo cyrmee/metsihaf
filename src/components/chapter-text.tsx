@@ -459,7 +459,7 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
           <Asterisk className="h-3.5 w-3.5" />
         </button>
       )}
-      {interactive && data.verses.find((v) => v.verse === verse)?.studyNote && (
+      {interactive && (data.verses.find((v) => v.verse === verse)?.studyNotes?.length ?? 0) > 0 && (
         <button
           type="button"
           onClick={(e) => {
@@ -613,14 +613,15 @@ export const ChapterText = forwardRef<ChapterTextHandle, ChapterTextProps>(funct
       {interactive && book && openStudyNoteVerse !== null && (
         <StudyNoteModal
           sourceLabel={(() => {
-            const note = data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNote;
+            const notes = data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNotes ?? [];
+            const maxEnd = Math.max(openStudyNoteVerse, ...notes.map((n) => n.verseEnd));
             const range =
-              note && note.verseEnd > openStudyNoteVerse
-                ? `${openStudyNoteVerse}-${note.verseEnd}`
+              maxEnd > openStudyNoteVerse
+                ? `${openStudyNoteVerse}-${maxEnd}`
                 : `${openStudyNoteVerse}`;
             return `${bookName(book, translation.language)} ${data.chapter}:${range}`;
           })()}
-          note={data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNote ?? null}
+          notes={data.verses.find((v) => v.verse === openStudyNoteVerse)?.studyNotes ?? []}
           open={openStudyNoteVerse !== null}
           onClose={() => setOpenPanel(null)}
           fontSize={fontSize}
@@ -956,7 +957,7 @@ function SelectionToolbar({
 
               <button
                 type="button"
-                disabled={!single?.studyNote}
+                disabled={!single?.studyNotes?.length}
                 onClick={() => setRefPanel(refPanel === "study" ? null : "study")}
                 aria-label="Study note"
                 title="Study note"
@@ -1034,12 +1035,16 @@ function SelectionToolbar({
 
       {single && (
         <StudyNoteModal
-          sourceLabel={`${bookName(book, translation.language)} ${chapter}:${
-            single.studyNote && single.studyNote.verseEnd > single.verse
-              ? `${single.verse}-${single.studyNote.verseEnd}`
-              : (single.label ?? single.verse)
-          }`}
-          note={single.studyNote ?? null}
+          sourceLabel={`${bookName(book, translation.language)} ${chapter}:${(() => {
+            const maxEnd = Math.max(
+              single.verse,
+              ...(single.studyNotes ?? []).map((n) => n.verseEnd),
+            );
+            return maxEnd > single.verse
+              ? `${single.verse}-${maxEnd}`
+              : (single.label ?? single.verse);
+          })()}`}
+          notes={single.studyNotes ?? []}
           open={refPanel === "study"}
           onClose={() => setRefPanel(null)}
           fontSize={fontSize}

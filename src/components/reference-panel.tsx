@@ -79,11 +79,21 @@ export function ReferencePanel({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] panel:inset-x-auto panel:top-[11.5rem] panel:right-auto panel:left-[calc(50%+25.25rem)] panel:bottom-auto panel:h-auto panel:max-h-[calc(100vh-13rem)] panel:w-[26rem] panel:max-w-none panel:translate-x-0 panel:translate-y-0">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reference-panel-title"
+        className="fixed top-1/2 left-1/2 z-50 flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] panel:inset-x-auto panel:top-[11.5rem] panel:right-auto panel:left-[calc(50%+25.25rem)] panel:bottom-auto panel:h-auto panel:max-h-[calc(100vh-13rem)] panel:w-[26rem] panel:max-w-none panel:translate-x-0 panel:translate-y-0"
+      >
         <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center border-b border-ink px-4 py-3">
           <span aria-hidden="true" />
           <div className="text-center">
-            <h2 className="font-display text-xl font-semibold text-foreground">{title}</h2>
+            <h2
+              id="reference-panel-title"
+              className="font-display text-xl font-semibold text-foreground"
+            >
+              {title}
+            </h2>
             <p className="font-mono text-[10px] tracking-[0.06em] text-signal uppercase">
               {sourceLabel}
             </p>

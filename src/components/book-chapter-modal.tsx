@@ -175,7 +175,12 @@ export function BookChapterModal({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-[60] flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose a passage"
+        className="animate-in zoom-in-95 fixed top-1/2 left-1/2 z-[60] flex h-[min(38rem,85vh)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col border border-ink bg-paper shadow-[10px_10px_0_rgba(23,32,29,0.11)] duration-150"
+      >
         <div className="flex items-center justify-between border-b border-ink px-4 py-3">
           <button
             type="button"

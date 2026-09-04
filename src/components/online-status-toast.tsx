@@ -10,10 +10,10 @@ export function OnlineStatusToast() {
     const onOffline = () =>
       toast("You're offline", {
         description: "Downloaded chapters still work. Changes will sync once you're back.",
-        icon: <WifiOff className="h-4 w-4 text-highlight-red" />,
+        icon: <WifiOff className="h-4 w-4 text-signal" />,
       });
     const onOnline = () =>
-      toast("Back online", { icon: <Wifi className="h-4 w-4 text-highlight-green" /> });
+      toast("Back online", { icon: <Wifi className="h-4 w-4 text-support" /> });
 
     window.addEventListener("offline", onOffline);
     window.addEventListener("online", onOnline);

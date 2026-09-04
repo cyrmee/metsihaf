@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { StudyNote } from "@/lib/bible";
 import { ReferencePanel } from "@/components/reference-panel";
 
 const SOURCE_LABELS: Record<string, string> = {
   "matthew-henry": "Matthew Henry Bible Commentary",
+  "jamieson-fausset-brown": "Jamieson-Fausset-Brown Bible Commentary",
 };
 
 // Matthew Henry's commentary is structured as an outline (Roman-numeral,
@@ -38,9 +41,10 @@ function splitIntoParagraphs(text: string): string[] {
 }
 
 interface StudyNoteModalProps {
-  /** The passage this note covers, e.g. "John 3:1-21". */
+  /** The passage these notes cover, e.g. "John 3:1-21". */
   sourceLabel: string;
-  note: StudyNote | null;
+  /** One entry per commentary that has a note here — a verse can appear in more than one. */
+  notes: StudyNote[];
   open: boolean;
   onClose: () => void;
   /** Reader font size in px, matched to the bible text's current setting. */
@@ -53,10 +57,10 @@ interface StudyNoteModalProps {
   letterSpacing?: string;
 }
 
-/** Popup showing a public-domain commentary note anchored to a passage — same shell as FootnotesModal/CrossRefsModal. */
+/** Popup showing public-domain commentary notes anchored to a passage — same shell as FootnotesModal/CrossRefsModal. When more than one commentary has a note here, `<`/`>` cycle between them. */
 export function StudyNoteModal({
   sourceLabel,
-  note,
+  notes,
   open,
   onClose,
   fontSize,
@@ -64,35 +68,76 @@ export function StudyNoteModal({
   lineHeight,
   letterSpacing,
 }: StudyNoteModalProps) {
+  const [active, setActive] = useState(0);
+  // Land back on the first commentary whenever the panel is pointed at a
+  // new passage, rather than keeping whatever one was last selected.
+  useEffect(() => {
+    setActive(0);
+  }, [sourceLabel]);
+  const activeNote = notes[Math.min(active, notes.length - 1)];
+  const cycle = (delta: number) => setActive((i) => (i + delta + notes.length) % notes.length);
+
   return (
     <ReferencePanel title="Study Note" sourceLabel={sourceLabel} open={open} onClose={onClose}>
-      <div className="px-4 py-3">
-        {!note ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            No study note for this verse.
-          </p>
-        ) : (
-          <>
-            {splitIntoParagraphs(note.text).map((paragraph, i) => (
-              <p
-                key={i}
-                className="mb-3 leading-relaxed text-foreground"
-                style={{
-                  fontSize: fontSize ? `${fontSize}px` : undefined,
-                  fontFamily,
-                  lineHeight,
-                  letterSpacing,
-                }}
+      {notes.length === 0 ? (
+        <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+          No study note for this verse.
+        </p>
+      ) : (
+        <>
+          {notes.length > 1 && (
+            <div className="flex items-center justify-between gap-2 border-b border-ink px-2 py-2">
+              <button
+                type="button"
+                onClick={() => cycle(-1)}
+                aria-label="Previous commentary"
+                className="focus-editorial flex h-7 w-7 shrink-0 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
               >
-                {paragraph}
-              </p>
-            ))}
-            <p className="mt-4 border-t border-rule pt-3 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-              {SOURCE_LABELS[note.source] ?? note.source}
-            </p>
-          </>
-        )}
-      </div>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex min-w-0 flex-col items-center">
+                <span className="max-w-full truncate font-mono text-[10px] tracking-[0.08em] text-signal uppercase">
+                  {SOURCE_LABELS[activeNote?.source ?? ""] ?? activeNote?.source}
+                </span>
+                <span className="font-mono text-[9px] tracking-[0.06em] text-muted">
+                  {active + 1} / {notes.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => cycle(1)}
+                aria-label="Next commentary"
+                className="focus-editorial flex h-7 w-7 shrink-0 items-center justify-center border border-ink text-ink hover:bg-ink hover:text-paper-white"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {activeNote && (
+            <div className="px-4 py-3">
+              {notes.length === 1 && (
+                <p className="mb-3 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+                  {SOURCE_LABELS[activeNote.source] ?? activeNote.source}
+                </p>
+              )}
+              {splitIntoParagraphs(activeNote.text).map((paragraph, i) => (
+                <p
+                  key={i}
+                  className="mb-3 leading-relaxed text-foreground"
+                  style={{
+                    fontSize: fontSize ? `${fontSize}px` : undefined,
+                    fontFamily,
+                    lineHeight,
+                    letterSpacing,
+                  }}
+                >
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </ReferencePanel>
   );
 }

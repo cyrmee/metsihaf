@@ -77,13 +77,14 @@ export interface ChapterVerse {
   /** Rendered one verse per line (poetry) instead of folded into a flowing paragraph (prose) — from the source's own paragraph markup. */
   poetic?: boolean;
   /**
-   * Commentary note anchored at this verse — present only on the verse a
-   * note's passage starts at. Not populated by /api/chapter (which is
-   * translation-scoped); merged in client-side from a separate
-   * ChapterStudyNotes fetch, kept in its own cache entry since the same
-   * notes apply across every translation.
+   * Commentary notes anchored at this verse, one per commentary that has
+   * one here (a verse can appear in more than one supported commentary) —
+   * present only on the verse a note's passage starts at. Not populated by
+   * /api/chapter (which is translation-scoped); merged in client-side from
+   * a separate ChapterStudyNotes fetch, kept in its own cache entry since
+   * the same notes apply across every translation.
    */
-  studyNote?: StudyNote;
+  studyNotes?: StudyNote[];
 }
 
 export interface ChapterData {

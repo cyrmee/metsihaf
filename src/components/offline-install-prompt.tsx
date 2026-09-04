@@ -63,20 +63,20 @@ export function OfflineInstallPrompt() {
           <button
             type="button"
             onClick={promptInstall}
-            className="flex items-center gap-1.5 self-start bg-signal px-3 py-1.5 text-xs font-medium text-paper-white"
+            className="focus-editorial flex items-center gap-1.5 self-start bg-signal px-3 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover"
           >
             <Smartphone className="h-3.5 w-3.5" /> Install app
           </button>
         )}
         {showIosHint && (
-          <p className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1.5 border border-rule bg-field-inset px-3 py-2 text-xs text-muted-foreground">
             <Share className="h-3.5 w-3.5 shrink-0" /> To install: tap Share, then &ldquo;Add to
             Home Screen&rdquo;.
           </p>
         )}
         {installed && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Check className="h-3.5 w-3.5 text-primary" /> Installed
+            <Check className="h-3.5 w-3.5 text-support" /> Installed
           </p>
         )}
 
@@ -85,7 +85,7 @@ export function OfflineInstallPrompt() {
             type="button"
             disabled={downloading || translationIds.length === 0}
             onClick={() => start(translationIds)}
-            className="flex items-center gap-1.5 self-start bg-signal px-3 py-1.5 text-xs font-medium text-paper-white disabled:opacity-50"
+            className="focus-editorial flex items-center gap-1.5 self-start bg-signal px-3 py-2 font-mono text-[11px] font-bold tracking-[0.08em] text-paper-white uppercase hover:bg-signal-hover disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
             {downloading && progress
@@ -94,10 +94,10 @@ export function OfflineInstallPrompt() {
           </button>
         ) : (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Check className="h-3.5 w-3.5 text-primary" /> Downloaded for offline reading
+            <Check className="h-3.5 w-3.5 text-support" /> Downloaded for offline reading
           </p>
         )}
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-xs text-signal">{error}</p>}
       </div>,
       {
         id: TOAST_ID,
