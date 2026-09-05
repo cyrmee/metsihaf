@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateExtension
-CREATE EXTENSION IF NOT EXISTS "btree_gin";
+CREATE EXTENSION IF NOT EXISTS "btree_gin" WITH VERSION '1.3';
 
 -- CreateEnum
 CREATE TYPE "HighlightColor" AS ENUM ('yellow', 'red', 'orange', 'brown', 'green', 'teal', 'blue', 'purple', 'pink');
